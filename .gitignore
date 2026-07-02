@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Grafana (auto-generated state, not config)
+infra/grafana/grafana.db
