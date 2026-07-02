@@ -1,0 +1,26 @@
+# configs/models.yaml
+#
+# Runtime overrides for MODEL_REGISTRY defaults.
+# Applied once at startup via registry.load_yaml_overrides().
+#
+# Use this to:
+#   - Disable a model temporarily (enabled: false)
+#   - Update pricing when a provider changes rates
+#   - Adjust avg_latency_ms based on observed p95 from Grafana
+#
+# Only fields listed in ModelConfig can be overridden.
+# Keys must match MODEL_REGISTRY exactly: "<provider>/<model_id>"
+
+overrides:
+  # Example: disable Ollama if no local GPU available
+  # ollama/llama3.1:
+  #   enabled: false
+
+  # Example: update Groq pricing if they change rates
+  # groq/llama-3.1-8b-instant:
+  #   cost_per_input_token: 0.00000006
+  #   cost_per_output_token: 0.00000009
+
+  # Example: adjust latency based on observed Grafana P95
+  # google/gemini-1.5-flash:
+  #   avg_latency_ms: 420
