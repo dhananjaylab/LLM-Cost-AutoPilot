@@ -1,0 +1,235 @@
+---
+# LLM Cost Autopilot — Docker Compose
+#
+# Services:
+#   postgres       — primary database
+#   redis          — Celery broker + Redis Stack for semantic cache
+#   api            — FastAPI application (uvicorn)
+#   worker         — Celery worker (verification + retraining queues)
+#   beat           — Celery beat scheduler (one instance only)
+#   flower         — Celery task dashboard
+#   prometheus     — metrics scraper
+#   grafana        — cost/quality dashboards
+#   ollama         — local model serving (optional, CPU by default)
+#
+# Usage:
+#   make up          → start all services
+#   make up-core     → start just postgres + redis (for local dev)
+#   make logs        → tail all logs
+
+name: llm-cost-autopilot
+
+x-common-env: &common-env
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  DATABASE_URL: postgresql+asyncpg://autopilot:autopilot@postgres:5432/autopilot
+  REDIS_URL: redis://redis:6379
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/1
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+  GROQ_API_KEY: ${GROQ_API_KEY:-}
+  OLLAMA_BASE_URL: http://ollama:11434
+  ENABLE_TRACING: ${ENABLE_TRACING:-false}
+
+x-app-base: &app-base
+  build:
+    context: .
+    args:
+      UV_VERSION: "0.4.0"
+  environment:
+    <<: *common-env
+  volumes:
+    - ./configs:/app/configs:ro
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: autopilot
+      POSTGRES_PASSWORD: autopilot
+      POSTGRES_DB: autopilot
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autopilot -d autopilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Redis Stack (RediSearch for vector index) ────────────────────────────────
+  redis:
+    image: redis/redis-stack:7.4.0-v1
+    ports:
+      - "6379:6379"   # Redis
+      - "8001:8001"   # RedisInsight UI
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── API ─────────────────────────────────────────────────────────────────────
+  api:
+    <<: *app-base
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    command: >
+      uvicorn llm_autopilot_api.main:app
+        --host 0.0.0.0
+        --port 8000
+        --workers ${API_WORKERS:-2}
+        --loop uvloop
+        --http httptools
+        --no-access-log
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      prometheus.scrape: "true"
+      prometheus.port: "8000"
+      prometheus.path: "/metrics"
+
+  # ── Celery Worker ────────────────────────────────────────────────────────────
+  worker:
+    <<: *app-base
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+    command: >
+      celery -A llm_autopilot_worker.main worker
+        --queues verification,retraining
+        --concurrency ${WORKER_CONCURRENCY:-4}
+        --loglevel ${LOG_LEVEL:-INFO}
+        --without-gossip
+        --without-mingle
+        --without-heartbeat
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "llm_autopilot_worker.main", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Celery Beat (one instance only — never scale this) ───────────────────────
+  beat:
+    <<: *app-base
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+    command: >
+      celery -A llm_autopilot_worker.main beat
+        --scheduler celery.beat:PersistentScheduler
+        --loglevel ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./configs:/app/configs:ro
+      - beat_schedule:/app/beat
+    deploy:
+      replicas: 1  # NEVER scale beat — duplicate schedules break things
+
+  # ── Flower (Celery task monitoring) ─────────────────────────────────────────
+  flower:
+    <<: *app-base
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+    command: >
+      celery -A llm_autopilot_worker.main flower
+        --port=5555
+        --broker_api=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+
+  # ── Prometheus ───────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  # ── Grafana ──────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana-oss:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-autopilot}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ── Ollama (local model serving) ─────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Uncomment to enable GPU (requires nvidia-docker):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  ollama_data:
+  beat_schedule:
+
+networks:
+  default:
+    name: llm-autopilot-net

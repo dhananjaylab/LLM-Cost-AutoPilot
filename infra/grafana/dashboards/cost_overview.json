@@ -1,0 +1,218 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {"type": "grafana", "id": "grafana", "name": "Grafana", "version": "11.0.0"},
+    {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"}
+  ],
+  "annotations": {"list": []},
+  "description": "LLM Cost Autopilot — Cost & Quality Overview",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "💰 Total Cost Saved (All Time)",
+      "description": "Cumulative USD saved vs routing everything to GPT-4o",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "dark-green", "value": 10}
+            ]
+          },
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "auto"},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "llm_autopilot_cost_savings_usd_total",
+          "legendFormat": "Saved"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "📊 Cost Savings %",
+      "description": "Actual cost / hypothetical cost if everything went to GPT-4o",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 30},
+              {"color": "green", "value": 50}
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "(1 - llm_autopilot_cost_usd_total / llm_autopilot_hypothetical_cost_usd_total) * 100",
+          "legendFormat": "Savings %"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "⚡ Cache Hit Rate",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 15},
+              {"color": "green", "value": 30}
+            ]
+          }
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "rate(llm_autopilot_cache_hits_total[5m]) / (rate(llm_autopilot_cache_hits_total[5m]) + rate(llm_autopilot_cache_misses_total[5m])) * 100",
+          "legendFormat": "Cache Hit %"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "🚨 Escalation Rate",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5},
+              {"color": "red", "value": 15}
+            ]
+          }
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "rate(llm_autopilot_escalations_total[5m]) / rate(llm_autopilot_requests_total[5m]) * 100",
+          "legendFormat": "Escalation %"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Cost Over Time — Actual vs Hypothetical",
+      "description": "Green gap between lines = money saved by routing",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4},
+      "fieldConfig": {
+        "defaults": {"unit": "currencyUSD", "decimals": 6},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Hypothetical (GPT-4o only)"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "Actual"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]}
+        ]
+      },
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list"}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "rate(llm_autopilot_cost_usd_total[5m])",
+          "legendFormat": "Actual"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "rate(llm_autopilot_hypothetical_cost_usd_total[5m])",
+          "legendFormat": "Hypothetical (GPT-4o only)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "piechart",
+      "title": "Routing Distribution by Tier",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 12},
+      "options": {"pieType": "donut", "tooltip": {"mode": "single"}, "legend": {"displayMode": "list", "placement": "right"}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum by (complexity_tier) (increase(llm_autopilot_requests_total[1h]))",
+          "legendFormat": "{{complexity_tier}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Requests by Provider",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 12},
+      "options": {"pieType": "donut", "legend": {"displayMode": "list", "placement": "right"}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum by (provider) (increase(llm_autopilot_requests_total[1h]))",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Request Latency P50/P95/P99 (ms)",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "ms"}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(llm_autopilot_request_latency_ms_bucket[5m])) by (le))",
+          "legendFormat": "P50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(llm_autopilot_request_latency_ms_bucket[5m])) by (le))",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(llm_autopilot_request_latency_ms_bucket[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["llm", "cost", "routing"],
+  "time": {"from": "now-24h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "LLM Cost Autopilot — Overview",
+  "uid": "llm-autopilot-overview",
+  "version": 1
+}

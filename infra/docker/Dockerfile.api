@@ -1,0 +1,67 @@
+# syntax=docker/dockerfile:1
+# ── API Service Dockerfile ────────────────────────────────────────────────────
+#
+# Multi-stage build:
+#   builder  — installs uv + syncs workspace dependencies
+#   runtime  — lean image, no build tools
+#
+# Build context: repo root (so uv can resolve the full workspace)
+
+ARG PYTHON_VERSION=3.11
+ARG UV_VERSION=0.4.0
+
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+FROM python:${PYTHON_VERSION}-slim AS builder
+
+ARG UV_VERSION
+ENV UV_VERSION=${UV_VERSION}
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:${UV_VERSION} /uv /usr/local/bin/uv
+
+# Disable uv's own venv creation — we want the system Python
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_NO_CACHE=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /build
+
+# Copy workspace definition first (better layer caching)
+COPY pyproject.toml ./
+COPY libs/core/pyproject.toml ./libs/core/
+COPY apps/api/pyproject.toml ./apps/api/
+COPY apps/worker/pyproject.toml ./apps/worker/
+
+# Install all workspace deps (no dev deps)
+COPY libs/ ./libs/
+COPY apps/api/ ./apps/api/
+RUN uv sync --no-dev --package llm-autopilot-api
+
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM python:${PYTHON_VERSION}-slim AS runtime
+
+# Security: run as non-root
+RUN groupadd --gid 1001 autopilot \
+ && useradd  --uid 1001 --gid autopilot --shell /bin/bash --create-home autopilot
+
+WORKDIR /app
+
+# Copy installed packages and source from builder
+COPY --from=builder /usr/local/lib /usr/local/lib
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /build/libs     /app/libs
+COPY --from=builder /build/apps/api /app/apps/api
+
+# Runtime-only system deps (curl for healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONPATH=/app/libs/core:/app/apps/api
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+USER autopilot
+
+# Entrypoint is defined in docker-compose.yml (allows override)
+EXPOSE 8000
