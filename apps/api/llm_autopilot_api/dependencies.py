@@ -11,20 +11,21 @@ Usage:
     ):
         ...
 """
+
 from __future__ import annotations
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import redis.asyncio as aioredis
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.database import get_async_session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 settings = get_settings()
 
 # ── Database ──────────────────────────────────────────────────────────────────
+
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async for session in get_async_session():
@@ -33,10 +34,10 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 # ── Redis ─────────────────────────────────────────────────────────────────────
 
-_redis_pool: aioredis.Redis | None = None
+_redis_pool: aioredis.Redis[Any] | None = None
 
 
-async def get_redis() -> aioredis.Redis:
+async def get_redis() -> aioredis.Redis[Any]:
     """Return a singleton async Redis client from the connection pool."""
     global _redis_pool
     if _redis_pool is None:
@@ -44,7 +45,7 @@ async def get_redis() -> aioredis.Redis:
             settings.redis_url,
             encoding="utf-8",
             decode_responses=False,  # raw bytes for vector storage
-            max_connections=20,
+            max_connections=5,
         )
     return _redis_pool
 
@@ -52,5 +53,5 @@ async def get_redis() -> aioredis.Redis:
 async def close_redis() -> None:
     global _redis_pool
     if _redis_pool:
-        await _redis_pool.aclose()
+        await _redis_pool.close()
         _redis_pool = None

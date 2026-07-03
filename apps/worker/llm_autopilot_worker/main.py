@@ -24,6 +24,7 @@ from __future__ import annotations
 from celery import Celery
 from celery.schedules import crontab
 from celery.signals import worker_ready, worker_shutdown
+from kombu import Exchange, Queue
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.logging import configure_logging
 
@@ -62,6 +63,9 @@ celery_app.conf.update(
     # Timeouts
     task_soft_time_limit=settings.celery_task_soft_time_limit,
     task_time_limit=settings.celery_task_time_limit,
+    # Connection Limits (Defensive against Redis Cloud free-tier connection limits)
+    broker_pool_limit=2,
+    redis_max_connections=5,
     # Result expiry
     result_expires=86_400,  # 24 hours
     # Queue routing
@@ -70,10 +74,10 @@ celery_app.conf.update(
         "llm_autopilot_worker.tasks.retraining.*": {"queue": "retraining"},
     },
     task_default_queue="verification",
-    task_queues={
-        "verification": {"exchange": "verification", "routing_key": "verification"},
-        "retraining": {"exchange": "retraining", "routing_key": "retraining"},
-    },
+    task_queues=[
+        Queue("verification", Exchange("verification"), routing_key="verification"),
+        Queue("retraining", Exchange("retraining"), routing_key="retraining"),
+    ],
     # Beat schedule
     beat_schedule={
         "retrain-classifier-weekly": {
