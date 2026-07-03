@@ -159,7 +159,7 @@ To run background tasks locally:
 ```powershell
 # In terminal 2:
 $env:PYTHONPATH="libs/core;apps/api;apps/worker"
-uv run celery -A llm_autopilot_worker.main worker -Q verification,retraining -c 2 --loglevel DEBUG
+uv run celery -A llm_autopilot_worker.main worker -Q verification,retraining -P solo --loglevel DEBUG -E
 
 # In terminal 3 (Optional scheduler):
 $env:PYTHONPATH="libs/core;apps/api;apps/worker"
