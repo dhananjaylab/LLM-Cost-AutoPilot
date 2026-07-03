@@ -164,7 +164,16 @@ uv run celery -A llm_autopilot_worker.main worker -Q verification,retraining -P 
 # In terminal 3 (Optional scheduler):
 $env:PYTHONPATH="libs/core;apps/api;apps/worker"
 uv run celery -A llm_autopilot_worker.main beat --loglevel DEBUG
+
+# In terminal 4 (Optional Flower dashboard):
+$env:PYTHONPATH="libs/core;apps/api;apps/worker"
+uv run celery -A llm_autopilot_worker.main flower --port=5555
+http://localhost:5555/broker
 ```
+
+> [!NOTE]
+> * **`-P solo`**: Required on Windows to prevent `PermissionError: [WinError 5] Access is denied` errors caused by Celery's default multiprocessing library attempting to create process forks.
+> * **`-E`**: Enables task events publishing, allowing the worker status and jobs to show up inside the Flower dashboard.
 
 ## 🛠️ Development & Tooling Commands
 
