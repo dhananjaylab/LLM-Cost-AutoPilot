@@ -62,6 +62,9 @@ celery_app.conf.update(
     # Timeouts
     task_soft_time_limit=settings.celery_task_soft_time_limit,
     task_time_limit=settings.celery_task_time_limit,
+    # Connection Limits (Defensive against Redis Cloud free-tier connection limits)
+    broker_pool_limit=2,
+    redis_max_connections=5,
     # Result expiry
     result_expires=86_400,  # 24 hours
     # Queue routing
