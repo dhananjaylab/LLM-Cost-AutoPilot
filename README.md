@@ -43,51 +43,133 @@ The repository is structured as a monorepo featuring a shared core library, Fast
     └── models.yaml
 ```
 
----
-
 ## ⚡ Quick Start
 
 Follow these steps to unpack the repository, configure variables, install dependencies, and run services locally:
 
 ### 1. Extract and Navigate
+On Linux/macOS:
 ```bash
+tar -xzf llm-cost-autopilot-phase0.tar.gz
+cd llm-cost-autopilot
+```
+On Windows (PowerShell):
+```powershell
 tar -xzf llm-cost-autopilot-phase0.tar.gz
 cd llm-cost-autopilot
 ```
 
 ### 2. Configure Environments
-Create a local configuration file from the template and enter your API credentials:
+Create a local configuration file from the template:
+On Linux/macOS:
 ```bash
 cp .env.example .env
-# Open .env and add your respective OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.
+```
+On Windows (PowerShell):
+```powershell
+Copy-Item .env.example .env
 ```
 
-### 3. Install Dependencies
-This project uses `uv` for package management and setting up pre-commit hooks:
+#### ☁️ Using Cloud Databases (NeonDB & Redis Cloud)
+If running locally without Docker:
+* **Postgres (NeonDB)**: Neon connections require SSL and the `asyncpg` driver. Modify the connection URL to prefix with `postgresql+asyncpg://`:
+  ```ini
+  DATABASE_URL=postgresql+asyncpg://<username>:<password>@<neon-host>/neondb?ssl=require
+  ```
+* **Redis Cloud**: Update your Redis connection details:
+  ```ini
+  REDIS_URL=redis://:<redis-password>@<redis-cloud-host>:<redis-cloud-port>
+  CELERY_BROKER_URL=redis://:<redis-password>@<redis-cloud-host>:<redis-cloud-port>/0
+  CELERY_RESULT_BACKEND=redis://:<redis-password>@<redis-cloud-host>:<redis-cloud-port>/1
+  ```
+  *(Note: If your Redis Cloud database doesn't support multiple database index partitions, you can remove the `/0` and `/1` suffixes).*
+
+### 3. Install Python Environment & Dependencies
+This project uses **`uv`** for lightning-fast environment and package management.
+
+#### A. Install `uv` (if not already installed)
+On Windows (PowerShell):
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Remember to restart your terminal or refresh environment variables afterwards.
+```
+On Linux/macOS:
 ```bash
-make dev-install
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### 4. Boot Core Services
-Start Postgres and Redis in the background:
+#### B. Sync Dependencies
+Create the virtual environment and install all libraries (including dev dependencies like `pytest`, `ruff`, etc.):
+```powershell
+uv sync --dev
+```
+*This command automatically creates a virtual environment folder named `.venv` if one does not exist, and synchronizes packages to match `uv.lock`.*
+
+#### C. Activate the Virtual Environment (Optional)
+On Windows (PowerShell):
+```powershell
+.venv\Scripts\Activate.ps1
+```
+On Linux/macOS:
+```bash
+source .venv/bin/activate
+```
+
+#### D. Install Pre-Commit Hooks
+Set up git hook checks to auto-format and lint on every commit:
+```bash
+uv run pre-commit install
+```
+
+### 4. Boot Core Services (Local vs Docker)
+If using local engines/databases (like Neon and Redis Cloud), ensure they are active.
+Otherwise, if running local containers:
+On Linux/macOS:
 ```bash
 make up-core
+```
+On Windows (PowerShell):
+```powershell
+docker compose up -d postgres redis
 ```
 
 ### 5. Run Database Migrations
 Deploy schema configurations using Alembic (runs as a no-op until database models are defined in later phases):
+On Linux/macOS:
 ```bash
 make migrate
 ```
+On Windows (PowerShell):
+```powershell
+uv run alembic upgrade head
+```
 
-### 6. Start the API Gateway
+### 6. Start the Applications
+
+#### A. Start the API Gateway
 Run the FastAPI development server:
+On Linux/macOS:
 ```bash
 make dev-api
 ```
+On Windows (PowerShell):
+```powershell
+$env:PYTHONPATH="libs/core;apps/api"
+uv run uvicorn llm_autopilot_api.main:app --reload --host 0.0.0.0 --port 8000
+```
 The API is now running locally at [http://localhost:8000](http://localhost:8000) and documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
----
+#### B. Start Celery worker & beat scheduler
+To run background tasks locally:
+```powershell
+# In terminal 2:
+$env:PYTHONPATH="libs/core;apps/api;apps/worker"
+uv run celery -A llm_autopilot_worker.main worker -Q verification,retraining -c 2 --loglevel DEBUG
+
+# In terminal 3 (Optional scheduler):
+$env:PYTHONPATH="libs/core;apps/api;apps/worker"
+uv run celery -A llm_autopilot_worker.main beat --loglevel DEBUG
+```
 
 ## 🛠️ Development & Tooling Commands
 

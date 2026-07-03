@@ -7,16 +7,11 @@ migrations by diffing ORM metadata against the live schema.
 
 Add new ORM model modules to the import block below so Alembic sees them.
 """
+
 from __future__ import annotations
 
 import asyncio
-import os
 from logging.config import fileConfig
-
-from alembic import context
-from sqlalchemy import pool
-from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # ── Make sure all models are imported before autogenerate ─────────────────────
 # As you add ORM model files in Phase 5, add imports here:
@@ -25,8 +20,12 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 #   from llm_autopilot_core.models.routing import RoutingDecision   # noqa: F401
 #   from llm_autopilot_core.models.verification import Verification # noqa: F401
 #   from llm_autopilot_core.models.costs import CostAggregate       # noqa: F401
-
 from llm_autopilot_core.database import Base  # noqa: F401 — registers metadata
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
 
 # ── Alembic config ────────────────────────────────────────────────────────────
 config = context.config
@@ -34,11 +33,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Override URL from environment — takes precedence over alembic.ini
-database_url = os.environ.get("DATABASE_URL")
+from llm_autopilot_core.config import get_settings
+
+# Override URL from environment/settings — takes precedence over alembic.ini
+settings = get_settings()
+database_url = settings.database_url
 if database_url:
-    # asyncpg:// is needed at runtime but Alembic's sync runner needs psycopg2-style URL.
-    # We keep asyncpg for the actual async runner below.
     config.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata
