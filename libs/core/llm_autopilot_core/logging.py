@@ -10,6 +10,7 @@ Every log line automatically gets:
   - logger name
   - correlation IDs injected via structlog.contextvars (set in middleware)
 """
+
 from __future__ import annotations
 
 import logging
@@ -21,11 +22,12 @@ from structlog.types import EventDict, WrappedLogger
 
 def _add_app_context(
     logger: WrappedLogger,  # noqa: ARG001
-    method_name: str,       # noqa: ARG001
+    method_name: str,  # noqa: ARG001
     event_dict: EventDict,
 ) -> EventDict:
     """Inject static application context into every log line."""
     from llm_autopilot_core.config import get_settings
+
     s = get_settings()
     event_dict.setdefault("app", s.app_name)
     event_dict.setdefault("env", s.environment)
@@ -41,6 +43,7 @@ def configure_logging(log_level: str | None = None) -> None:
         log_level: Override the level from settings (useful in tests).
     """
     from llm_autopilot_core.config import get_settings
+
     settings = get_settings()
 
     level_name = log_level or settings.log_level
@@ -57,7 +60,7 @@ def configure_logging(log_level: str | None = None) -> None:
     for noisy in ("httpx", "httpcore", "uvicorn.access"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
-    shared_processors: list = [
+    shared_processors = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
@@ -74,9 +77,13 @@ def configure_logging(log_level: str | None = None) -> None:
         renderer = structlog.processors.JSONRenderer()
 
     structlog.configure(
-        processors=[*shared_processors, renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(level),
+        processors=[
+            structlog.stdlib.filter_by_level,
+            *shared_processors,
+            renderer,
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )

@@ -16,23 +16,27 @@ GET  /v1/healthz      ← liveness probe
 GET  /v1/readyz       ← readiness probe (checks DB + Redis)
 GET  /metrics         ← Prometheus scrape endpoint
 """
+
 from __future__ import annotations
 
 import time
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_client import make_asgi_app
-
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.database import check_connection, dispose_engine
 from llm_autopilot_core.logging import configure_logging
 from llm_autopilot_core.metrics import initialise_info
 from llm_autopilot_core.registry import load_yaml_overrides
+from prometheus_client import make_asgi_app
+
 from llm_autopilot_api.routers import health
+
+# Configure logging immediately on import so module-level loggers use the configured factory
+configure_logging()
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -40,10 +44,10 @@ settings = get_settings()
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ── Startup ───────────────────────────────────────────────────────────────
-    configure_logging()
 
     logger.info(
         "startup",
@@ -88,11 +92,13 @@ def _configure_tracing() -> None:
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-        resource = Resource.create({
-            "service.name": settings.app_name,
-            "service.version": settings.app_version,
-            "deployment.environment": settings.environment,
-        })
+        resource = Resource.create(
+            {
+                "service.name": settings.app_name,
+                "service.version": settings.app_version,
+                "deployment.environment": settings.environment,
+            }
+        )
         provider = TracerProvider(resource=resource)
         provider.add_span_processor(
             BatchSpanProcessor(OTLPSpanExporter(endpoint=settings.otlp_endpoint))
@@ -102,10 +108,13 @@ def _configure_tracing() -> None:
         SQLAlchemyInstrumentor().instrument()
         logger.info("tracing_configured", endpoint=settings.otlp_endpoint)
     except ImportError:
-        logger.warning("tracing_deps_missing", hint="pip install opentelemetry-instrumentation-fastapi")
+        logger.warning(
+            "tracing_deps_missing", hint="pip install opentelemetry-instrumentation-fastapi"
+        )
 
 
 # ── Application factory ───────────────────────────────────────────────────────
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -135,6 +144,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def request_logging_middleware(request: Request, call_next: object) -> Response:
         import uuid
+
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
 
         structlog.contextvars.clear_contextvars()

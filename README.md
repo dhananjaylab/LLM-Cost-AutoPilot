@@ -148,11 +148,6 @@ uv run alembic upgrade head
 
 #### A. Start the API Gateway
 Run the FastAPI development server:
-On Linux/macOS:
-```bash
-make dev-api
-```
-On Windows (PowerShell):
 ```powershell
 $env:PYTHONPATH="libs/core;apps/api"
 uv run uvicorn llm_autopilot_api.main:app --reload --host 0.0.0.0 --port 8000

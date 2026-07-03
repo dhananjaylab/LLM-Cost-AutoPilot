@@ -18,14 +18,17 @@ Start the beat scheduler (one instance only):
 Flower monitoring dashboard:
     celery -A llm_autopilot_worker.main flower --port=5555
 """
+
 from __future__ import annotations
 
 from celery import Celery
 from celery.schedules import crontab
 from celery.signals import worker_ready, worker_shutdown
-
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.logging import configure_logging
+
+# Configure logging immediately on import so tasks and workers get the configured logger factory
+configure_logging()
 
 settings = get_settings()
 
@@ -53,7 +56,7 @@ celery_app.conf.update(
     enable_utc=True,
     # Reliability
     task_track_started=True,
-    task_acks_late=True,           # ack only after task succeeds
+    task_acks_late=True,  # ack only after task succeeds
     worker_prefetch_multiplier=1,  # one task at a time per worker slot
     task_reject_on_worker_lost=True,
     # Timeouts
@@ -69,7 +72,7 @@ celery_app.conf.update(
     task_default_queue="verification",
     task_queues={
         "verification": {"exchange": "verification", "routing_key": "verification"},
-        "retraining":   {"exchange": "retraining",   "routing_key": "retraining"},
+        "retraining": {"exchange": "retraining", "routing_key": "retraining"},
     },
     # Beat schedule
     beat_schedule={
@@ -80,7 +83,7 @@ celery_app.conf.update(
         },
         "aggregate-costs-daily": {
             "task": "llm_autopilot_worker.tasks.retraining.aggregate_daily_costs",
-            "schedule": crontab(hour=1, minute=0),                 # 01:00 UTC daily
+            "schedule": crontab(hour=1, minute=0),  # 01:00 UTC daily
             "options": {"queue": "retraining"},
         },
     },
@@ -89,10 +92,11 @@ celery_app.conf.update(
 
 # ── Signals ───────────────────────────────────────────────────────────────────
 
+
 @worker_ready.connect
 def on_worker_ready(**kwargs: object) -> None:  # noqa: ARG001
-    configure_logging()
     import structlog
+
     structlog.get_logger(__name__).info(
         "worker_ready",
         broker=settings.celery_broker_url,
@@ -102,4 +106,5 @@ def on_worker_ready(**kwargs: object) -> None:  # noqa: ARG001
 @worker_shutdown.connect
 def on_worker_shutdown(**kwargs: object) -> None:  # noqa: ARG001
     import structlog
+
     structlog.get_logger(__name__).info("worker_shutdown")
