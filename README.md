@@ -47,55 +47,24 @@ The repository is structured as a monorepo featuring a shared core library, Fast
 
 Follow these steps to unpack the repository, configure variables, install dependencies, and run services locally:
 
-### 1. Extract and Navigate
-On Linux/macOS:
-```bash
-tar -xzf llm-cost-autopilot-phase0.tar.gz
-cd llm-cost-autopilot
-```
-On Windows (PowerShell):
+### 1. Navigate
 ```powershell
-tar -xzf llm-cost-autopilot-phase0.tar.gz
 cd llm-cost-autopilot
 ```
 
 ### 2. Configure Environments
 Create a local configuration file from the template:
-On Linux/macOS:
-```bash
-cp .env.example .env
-```
-On Windows (PowerShell):
 ```powershell
 Copy-Item .env.example .env
 ```
-
-#### ☁️ Using Cloud Databases (NeonDB & Redis Cloud)
-If running locally without Docker:
-* **Postgres (NeonDB)**: Neon connections require SSL and the `asyncpg` driver. Modify the connection URL to prefix with `postgresql+asyncpg://`:
-  ```ini
-  DATABASE_URL=postgresql+asyncpg://<username>:<password>@<neon-host>/neondb?ssl=require
-  ```
-* **Redis Cloud**: Update your Redis connection details:
-  ```ini
-  REDIS_URL=redis://:<redis-password>@<redis-cloud-host>:<redis-cloud-port>
-  CELERY_BROKER_URL=redis://:<redis-password>@<redis-cloud-host>:<redis-cloud-port>/0
-  CELERY_RESULT_BACKEND=redis://:<redis-password>@<redis-cloud-host>:<redis-cloud-port>/1
-  ```
-  *(Note: If your Redis Cloud database doesn't support multiple database index partitions, you can remove the `/0` and `/1` suffixes).*
 
 ### 3. Install Python Environment & Dependencies
 This project uses **`uv`** for lightning-fast environment and package management.
 
 #### A. Install `uv` (if not already installed)
-On Windows (PowerShell):
 ```powershell
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-# Remember to restart your terminal or refresh environment variables afterwards.
-```
-On Linux/macOS:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Restart your terminal or refresh environment variables afterwards.
 ```
 
 #### B. Sync Dependencies
@@ -106,40 +75,25 @@ uv sync --dev
 *This command automatically creates a virtual environment folder named `.venv` if one does not exist, and synchronizes packages to match `uv.lock`.*
 
 #### C. Activate the Virtual Environment (Optional)
-On Windows (PowerShell):
 ```powershell
 .venv\Scripts\Activate.ps1
-```
-On Linux/macOS:
-```bash
-source .venv/bin/activate
 ```
 
 #### D. Install Pre-Commit Hooks
 Set up git hook checks to auto-format and lint on every commit:
-```bash
+```powershell
 uv run pre-commit install
 ```
 
 ### 4. Boot Core Services (Local vs Docker)
 If using local engines/databases (like Neon and Redis Cloud), ensure they are active.
 Otherwise, if running local containers:
-On Linux/macOS:
-```bash
-make up-core
-```
-On Windows (PowerShell):
 ```powershell
 docker compose up -d postgres redis
 ```
 
 ### 5. Run Database Migrations
 Deploy schema configurations using Alembic (runs as a no-op until database models are defined in later phases):
-On Linux/macOS:
-```bash
-make migrate
-```
-On Windows (PowerShell):
 ```powershell
 uv run alembic upgrade head
 ```
@@ -149,7 +103,6 @@ uv run alembic upgrade head
 #### A. Start the API Gateway
 Run the FastAPI development server:
 ```powershell
-$env:PYTHONPATH="libs/core;apps/api"
 uvicorn llm_autopilot_api.main:app --reload --port 8000
 ```
 The API is now running locally at [http://localhost:8000](http://localhost:8000) and documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
@@ -157,64 +110,70 @@ The API is now running locally at [http://localhost:8000](http://localhost:8000)
 #### B. Start Celery worker & beat scheduler
 To run background tasks locally:
 ```powershell
-# In terminal 2:
-$env:PYTHONPATH="libs/core;apps/api;apps/worker"
 celery -A llm_autopilot_worker.main worker -Q verification,retraining -P solo --loglevel DEBUG -E
-
-# In terminal 3 (Optional scheduler):
-$env:PYTHONPATH="libs/core;apps/api;apps/worker"
 celery -A llm_autopilot_worker.main beat --loglevel DEBUG
-
-# In terminal 4 (Optional Flower dashboard):
-$env:PYTHONPATH="libs/core;apps/api;apps/worker"
 celery -A llm_autopilot_worker.main flower --port=5555
-http://localhost:5555/broker
 ```
+
+Run the worker, beat, and Flower commands in separate PowerShell windows.
 
 > [!NOTE]
 > * **`-P solo`**: Required on Windows to prevent `PermissionError: [WinError 5] Access is denied` errors caused by Celery's default multiprocessing library attempting to create process forks.
 > * **`-E`**: Enables task events publishing, allowing the worker status and jobs to show up inside the Flower dashboard.
 
-## 🛠️ Development & Tooling Commands
-
-The provided `Makefile` manages the local workflow with 20+ targets:
-
-| Command | Action |
-|:---|:---|
-| `make install` | Installs production dependencies without development packages. |
-| `make dev-install` | Sets up virtual environments using `uv` and installs pre-commit hooks. |
-| `make lint` | Runs `ruff` to perform syntax checking, auto-formatting, and fixes. |
-| `make format` | Performs auto-formatting using `black`. |
-| `make typecheck` | Checks static typings with `mypy`. |
-| `make check` | Runs both `lint` and `typecheck` commands. |
-| `make test` | Runs the test suite (requires active Postgres & Redis). |
-| `make test-unit` | Runs offline-only unit tests (no external services needed). |
-| `make test-integration`| Runs integration tests directly. |
-| `make test-cov` | Generates a coverage check with an HTML output report. |
-| `make up` | Starts all 9 services in Docker Compose (API, worker, dashboards, Ollama, etc.). |
-| `make up-core` | Launches Postgres & Redis only. |
-| `make up-infra` | Launches Postgres, Redis, Prometheus, and Grafana (no application containers). |
-| `make down` | Shuts down Docker Compose containers while maintaining database volume history. |
-| `make down-v` | Shuts down containers and destroys volumes (fully resets databases). |
-| `make dev-worker` | Runs the Celery background task worker process locally. |
-| `make dev-beat` | Runs the Celery beat scheduler process locally (ensure only one scheduler is running). |
-| `make dev-flower` | Launches the Celery Flower task-monitoring dashboard. |
-| `make ollama-pull` | Pulls recommended LLM models inside the Ollama environment (Llama 3.1 & Mistral). |
-| `make reset` | Tear down containers, remove database volumes, and wipe python caches. |
-
----
-
 ## 📊 Monitoring & Services Dashboard URLs
 
-Once the full Docker stack is running (`make up`), you can access these web consoles:
+Use the local observability stack as a small service mesh for the app: FastAPI emits metrics and traces, Prometheus scrapes metrics, Tempo stores traces, and Grafana becomes the single operator console for dashboards and trace exploration.
 
-* **FastAPI documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Grafana Dashboards**: [http://localhost:3000](http://localhost:3000) (Credentials: `admin` / `autopilot`)
-* **Flower (Celery dashboard)**: [http://localhost:5555](http://localhost:5555)
-* **Prometheus Metrics console**: [http://localhost:9090](http://localhost:9090)
-* **RedisInsight (Redis dashboard)**: [http://localhost:8001](http://localhost:8001)
+### 1. Start the Observability Services
 
----
+Open separate PowerShell windows and start the stack in dependency order:
+
+```powershell
+# Terminal 1 -- Tempo (start first)
+powershell -ExecutionPolicy Bypass -File scripts\obs-tempo.ps1
+
+# Terminal 2 -- Prometheus
+powershell -ExecutionPolicy Bypass -File scripts\obs-prometheus.ps1
+
+# Terminal 3 -- Grafana (after MSI install)
+powershell -ExecutionPolicy Bypass -File scripts\obs-grafana.ps1
+
+# Terminal 4 -- FastAPI app
+uvicorn llm_autopilot_api.main:app --reload --port 8000
+```
+
+### 2. Verify Each Service
+
+Use `curl.exe` on Windows so the command behaves like standard curl instead of the PowerShell alias:
+
+```powershell
+# Tempo ready?
+curl.exe http://localhost:3200/ready
+
+# Prometheus targets?
+curl.exe http://localhost:9090/api/v1/targets
+
+# Grafana health?
+curl.exe http://localhost:3000/api/health
+
+# App metrics flowing?
+curl.exe http://localhost:8000/metrics
+```
+
+### 3. Canonical Local Endpoints
+
+* **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+* **API Metrics**: [http://localhost:8000/metrics](http://localhost:8000/metrics)
+* **Prometheus UI**: [http://localhost:9090](http://localhost:9090)
+* **Grafana UI**: [http://localhost:3000](http://localhost:3000) using `admin` / `autopilot`
+* **Flower UI**: [http://localhost:5555](http://localhost:5555)
+* **Tempo OTLP HTTP ingest**: [http://localhost:4318](http://localhost:4318)
+* **Tempo health**: [http://localhost:3200/ready](http://localhost:3200/ready)
+* **Tempo metrics**: [http://localhost:3200/metrics](http://localhost:3200/metrics)
+* **RedisInsight**: [http://localhost:8001](http://localhost:8001)
+
+> Note: `http://localhost:3200/` can return `404 Not Found` even when Tempo is running correctly. Use `/metrics` or `/ready` to verify the service.
 
 ## ⚙️ Configuration Tuning (`.env`)
 
