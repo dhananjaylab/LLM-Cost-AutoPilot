@@ -11,9 +11,9 @@ Usage:
     from llm_autopilot_core.config import get_settings
     settings = get_settings()          # cached singleton via lru_cache
 """
+
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 
 from pydantic import Field, SecretStr, field_validator
@@ -39,16 +39,14 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", pattern="^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
 
     # ── Database ──────────────────────────────────────────────────────────────
-    database_url: str = (
-        "postgresql+asyncpg://autopilot:autopilot@localhost:5432/autopilot"
-    )
+    database_url: str = "postgresql+asyncpg://autopilot:autopilot@localhost:5432/autopilot"
     database_pool_size: int = Field(default=10, ge=1, le=100)
     database_max_overflow: int = Field(default=20, ge=0, le=100)
     database_pool_timeout: int = Field(default=30, ge=1)
 
     # ── Redis / RediSearch ────────────────────────────────────────────────────
     redis_url: str = "redis://localhost:6379"
-    redis_cache_ttl: int = Field(default=3600, ge=60)           # seconds
+    redis_cache_ttl: int = Field(default=3600, ge=60)  # seconds
     cache_similarity_threshold: float = Field(default=0.92, ge=0.0, le=1.0)
     cache_index_name: str = "autopilot:semantic_cache"
     cache_vector_dim: int = 384  # all-MiniLM-L6-v2 output dimension
@@ -56,8 +54,8 @@ class Settings(BaseSettings):
     # ── Celery ────────────────────────────────────────────────────────────────
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/1"
-    celery_task_soft_time_limit: int = 300   # seconds before SoftTimeLimitExceeded
-    celery_task_time_limit: int = 600        # hard kill after 10 min
+    celery_task_soft_time_limit: int = 300  # seconds before SoftTimeLimitExceeded
+    celery_task_time_limit: int = 600  # hard kill after 10 min
 
     # ── LLM Provider API Keys ─────────────────────────────────────────────────
     openai_api_key: SecretStr | None = None

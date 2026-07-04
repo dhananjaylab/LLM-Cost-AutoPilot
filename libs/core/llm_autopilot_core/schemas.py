@@ -6,6 +6,7 @@ Design rules:
 - Internal models can be more permissive.
 - Enums are str-based so they serialise cleanly to JSON / Postgres.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,13 +16,13 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, computed_field
 
-
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
+
 class ComplexityTier(str, Enum):
-    SIMPLE = "simple"       # reformatting, extraction, basic Q&A
-    MODERATE = "moderate"   # summarisation, classification, structured analysis
-    COMPLEX = "complex"     # multi-step reasoning, creative, nuanced judgement
+    SIMPLE = "simple"  # reformatting, extraction, basic Q&A
+    MODERATE = "moderate"  # summarisation, classification, structured analysis
+    COMPLEX = "complex"  # multi-step reasoning, creative, nuanced judgement
 
 
 class QualityTier(str, Enum):
@@ -39,10 +40,10 @@ class Provider(str, Enum):
 
 
 class EscalationReason(str, Enum):
-    QUALITY_GAP = "quality_gap"          # verifier score below threshold
-    CIRCUIT_OPEN = "circuit_open"        # primary provider circuit breaker tripped
-    PROVIDER_ERROR = "provider_error"    # non-retriable provider error
-    MANUAL = "manual"                    # operator-initiated
+    QUALITY_GAP = "quality_gap"  # verifier score below threshold
+    CIRCUIT_OPEN = "circuit_open"  # primary provider circuit breaker tripped
+    PROVIDER_ERROR = "provider_error"  # non-retriable provider error
+    MANUAL = "manual"  # operator-initiated
 
 
 class VerificationStatus(str, Enum):
@@ -50,13 +51,15 @@ class VerificationStatus(str, Enum):
     PASSED = "passed"
     FAILED = "failed"
     ESCALATED = "escalated"
-    SKIPPED = "skipped"                  # sampling decided not to verify
+    SKIPPED = "skipped"  # sampling decided not to verify
 
 
 # ── Model Registry ────────────────────────────────────────────────────────────
 
+
 class ModelConfig(BaseModel):
     """Static config for a single LLM. Populated from registry.py."""
+
     provider: Provider
     model_id: str
     display_name: str
@@ -78,6 +81,7 @@ class ModelConfig(BaseModel):
 
 # ── Request / Response contracts ──────────────────────────────────────────────
 
+
 class Message(BaseModel):
     role: str = Field(..., pattern="^(system|user|assistant)$")
     content: str = Field(..., min_length=1)
@@ -85,6 +89,7 @@ class Message(BaseModel):
 
 class CompletionRequest(BaseModel):
     """What the caller sends to POST /v1/completions."""
+
     messages: list[Message] = Field(..., min_length=1)
     max_tokens: int = Field(default=1024, ge=1, le=100_000)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
@@ -97,6 +102,7 @@ class CompletionRequest(BaseModel):
 
 class ProviderResponse(BaseModel):
     """Raw result returned by a provider adapter before cost enrichment."""
+
     content: str
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
@@ -108,6 +114,7 @@ class ProviderResponse(BaseModel):
 
 class CompletionResponse(BaseModel):
     """What POST /v1/completions returns to the caller."""
+
     id: UUID = Field(default_factory=uuid4)
     content: str
     model_id: str
@@ -129,8 +136,10 @@ class CompletionResponse(BaseModel):
 
 # ── Routing ───────────────────────────────────────────────────────────────────
 
+
 class RoutingDecision(BaseModel):
     """Logged for every request that reaches the router (cache misses only)."""
+
     request_id: UUID
     complexity_tier: ComplexityTier
     classifier_confidence: float = Field(ge=0.0, le=1.0)
@@ -144,29 +153,33 @@ class RoutingDecision(BaseModel):
 
 # ── Verification / Escalation ─────────────────────────────────────────────────
 
+
 class VerificationResult(BaseModel):
     """Produced by the async Celery verification task."""
+
     request_id: UUID
     original_model_id: str
     judge_model_id: str
     quality_score: float = Field(ge=0.0, le=1.0)
     status: VerificationStatus
-    quality_gap: float | None = None        # None if not escalated
+    quality_gap: float | None = None  # None if not escalated
     escalation_reason: EscalationReason | None = None
     escalated_model_id: str | None = None
-    cost_delta_usd: float | None = None     # escalation overhead
+    cost_delta_usd: float | None = None  # escalation overhead
     checked_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 # ── Dashboard / Stats ─────────────────────────────────────────────────────────
 
+
 class CostStats(BaseModel):
     """Returned by GET /v1/stats."""
+
     period_start: datetime
     period_end: datetime
     total_requests: int
     total_cost_usd: float
-    hypothetical_cost_usd: float            # if everything went to GPT-4o
+    hypothetical_cost_usd: float  # if everything went to GPT-4o
     cost_savings_usd: float
     cost_savings_pct: float
     cache_hit_rate: float
