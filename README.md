@@ -150,7 +150,7 @@ uv run alembic upgrade head
 Run the FastAPI development server:
 ```powershell
 $env:PYTHONPATH="libs/core;apps/api"
-uv run uvicorn llm_autopilot_api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn llm_autopilot_api.main:app --reload --port 8000
 ```
 The API is now running locally at [http://localhost:8000](http://localhost:8000) and documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
@@ -159,15 +159,15 @@ To run background tasks locally:
 ```powershell
 # In terminal 2:
 $env:PYTHONPATH="libs/core;apps/api;apps/worker"
-uv run celery -A llm_autopilot_worker.main worker -Q verification,retraining -P solo --loglevel DEBUG -E
+celery -A llm_autopilot_worker.main worker -Q verification,retraining -P solo --loglevel DEBUG -E
 
 # In terminal 3 (Optional scheduler):
 $env:PYTHONPATH="libs/core;apps/api;apps/worker"
-uv run celery -A llm_autopilot_worker.main beat --loglevel DEBUG
+celery -A llm_autopilot_worker.main beat --loglevel DEBUG
 
 # In terminal 4 (Optional Flower dashboard):
 $env:PYTHONPATH="libs/core;apps/api;apps/worker"
-uv run celery -A llm_autopilot_worker.main flower --port=5555
+celery -A llm_autopilot_worker.main flower --port=5555
 http://localhost:5555/broker
 ```
 

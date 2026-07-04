@@ -136,6 +136,19 @@ dev-flower: ## Run Flower locally
 	PYTHONPATH=libs/core:apps/api:apps/worker \
 	$(UV) run celery -A llm_autopilot_worker.main flower --port=5555
 
+# ── Local Observability Stack (PowerShell scripts — Windows-safe) ─────────────
+obs-prometheus: ## Start Prometheus locally (PowerShell)
+	powershell -ExecutionPolicy Bypass -File scripts\obs-prometheus.ps1
+
+obs-tempo: ## Start Grafana Tempo locally (PowerShell)
+	powershell -ExecutionPolicy Bypass -File scripts\obs-tempo.ps1
+
+obs-grafana: ## Start Grafana locally (PowerShell)
+	powershell -ExecutionPolicy Bypass -File scripts\obs-grafana.ps1
+
+obs-start: ## Open Prometheus + Tempo + Grafana each in a new window
+	powershell -ExecutionPolicy Bypass -File scripts\obs-start.ps1
+
 # ── Ollama ────────────────────────────────────────────────────────────────────
 ollama-pull: ## Pull required Ollama models (run after `make up`)
 	$(DC) -f $(DC_FILE) exec ollama ollama pull llama3.1
