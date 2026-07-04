@@ -1,0 +1,147 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {"type": "grafana", "id": "grafana", "name": "Grafana", "version": "11.0.0"},
+    {"type": "datasource", "id": "tempo", "name": "Tempo", "version": "1.0.0"},
+    {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"}
+  ],
+  "annotations": {"list": []},
+  "description": "LLM Cost Autopilot — Distributed Tracing via Grafana Tempo",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "📡 Tempo Status",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "up{job=\"tempo\"}",
+          "legendFormat": "Tempo"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "🔢 Spans Received / s",
+      "gridPos": {"h": 4, "w": 5, "x": 4, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 1}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(tempo_distributor_spans_received_total[5m]))",
+          "legendFormat": "Spans/s"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "🏗️ Active Traces",
+      "gridPos": {"h": 4, "w": 5, "x": 9, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(tempo_ingester_live_traces)",
+          "legendFormat": "Live Traces"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Spans Ingested Rate",
+      "description": "Number of OTLP spans received per second by Tempo",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list"}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum by (service_name) (rate(tempo_distributor_spans_received_total[5m]))",
+          "legendFormat": "{{service_name}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Tempo Ingester Block Flushes",
+      "description": "How often Tempo flushes completed trace blocks to storage",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "rate(tempo_ingester_blocks_flushed_total[5m])",
+          "legendFormat": "Flushes/s"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "nodeGraph",
+      "title": "Service Graph",
+      "description": "Automatically generated from span data by Tempo metrics-generator. Shows request flow and latency between services.",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 12},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "serviceMap"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "traces",
+      "title": "🔍 Trace Explorer — Recent LLM Requests",
+      "description": "Search and explore distributed traces. Use the search bar to filter by service, duration, or span attributes.",
+      "gridPos": {"h": 16, "w": 24, "x": 0, "y": 24},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceqlSearch",
+          "filters": [
+            {"id": "service-name", "operator": "=", "scope": "resource", "tag": "service.name", "value": ["LLM Cost Autopilot"], "valueType": "string"}
+          ],
+          "limit": 20
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "sortBy": "startTime",
+        "spanBar": {"type": "duration"}
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["llm", "tracing", "tempo"],
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "LLM Cost Autopilot — Distributed Tracing",
+  "uid": "llm-autopilot-tracing",
+  "version": 1
+}

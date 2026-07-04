@@ -1,0 +1,54 @@
+# Grafana Tempo — local configuration (no Docker)
+# Run: tempo -config.file=infra/tempo/tempo.yml
+# OTLP HTTP receiver: http://localhost:4318
+# OTLP gRPC receiver: localhost:4317
+# Query HTTP API + Grafana datasource: http://localhost:3200
+
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m    # flush traces to storage every 5 min
+
+compactor:
+  compaction:
+    block_retention: 48h    # keep 48 hours of traces locally
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      project: llm-cost-autopilot
+  storage:
+    path: C:\Temp\tempo\generator\wal
+    remote_write:
+      - url: http://localhost:9090/api/v1/write
+        send_exemplars: true
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: C:\Temp\tempo\blocks
+    wal:
+      path: C:\Temp\tempo\wal
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - service-graphs
+        - span-metrics
+      generate_native_histograms: both

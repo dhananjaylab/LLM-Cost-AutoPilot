@@ -5,7 +5,7 @@ Triggered by the API after every request that passes the sampling filter.
 Sampling decision (made in the API layer before enqueueing):
 
   confidence < threshold → sample at verification_sample_rate_low_confidence  (default 100%)
-  confidence ≥ threshold → sample at verification_sample_rate_high_confidence (default 5%)
+  confidence ≥ threshold → sample at verification_sample_rate_high_confidence  (default 5%)
   random baseline        → sample at verification_random_baseline_rate         (default 2%)
 
 This task:
@@ -20,17 +20,19 @@ Phase 4 TODO:
   - Implement escalation rerun logic
   - Implement training example writing
 """
+
 from __future__ import annotations
+
+from typing import Any
 
 import structlog
 from celery import Task
-
-from llm_autopilot_worker.main import celery_app
 from llm_autopilot_core.metrics import (
     celery_tasks_total,
-    escalations_total,
     verifications_total,
 )
+
+from llm_autopilot_worker.main import celery_app
 
 logger = structlog.get_logger(__name__)
 
@@ -54,11 +56,11 @@ def verify_response(
     input_tokens: int,
     output_tokens: int,
     cost_usd: float,
-) -> dict:
+) -> dict[str, Any]:
     """
     Async quality verification for a single completed request.
 
-    Returns a dict matching the VerificationResult schema.
+    Returns a typed dictionary matching the VerificationResult schema.
     """
     log = logger.bind(
         request_id=request_id,
@@ -76,11 +78,11 @@ def verify_response(
         # 4. Write verification record to DB
         # 5. If failed, enqueue training example
 
-        result = {
+        result: dict[str, Any] = {
             "request_id": request_id,
             "original_model_id": model_id,
-            "judge_model_id": "not_implemented",   # Phase 4
-            "quality_score": -1.0,                 # Phase 4
+            "judge_model_id": "not_implemented",  # Phase 4
+            "quality_score": 0.0,  # Phase 4 placeholder
             "status": "skipped",
             "escalation_reason": None,
             "escalated_model_id": None,

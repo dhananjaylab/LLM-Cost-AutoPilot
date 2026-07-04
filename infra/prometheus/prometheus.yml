@@ -1,23 +1,25 @@
 # Prometheus scrape configuration
-# Retention: 30 days (set via CLI flag in docker-compose)
+# For local (non-Docker) dev: run prometheus.exe --config.file=infra/prometheus/prometheus.yml
+# Retention: set via --storage.tsdb.retention.time=30d flag when starting Prometheus
 # Scrape interval: 15s globally, overridden per job where needed
 
 global:
-  scrape_interval:     15s
+  scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
     environment: 'development'
     project: 'llm-cost-autopilot'
 
-# Alertmanager (add in production)
+# Alertmanager — uncomment when running alertmanager locally on port 9093
 # alerting:
 #   alertmanagers:
 #     - static_configs:
-#         - targets: ['alertmanager:9093']
+#         - targets: ['localhost:9093']
 
-# Rule files (add alert rules in Phase 6)
-# rule_files:
-#   - /etc/prometheus/rules/*.yml
+# Load recording + alert rules from the rules/ subdirectory
+rule_files:
+  - rules/recording_rules.yml
+  - rules/alert_rules.yml
 
 scrape_configs:
 
@@ -26,31 +28,40 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # ── FastAPI application ─────────────────────────────────────────────────────
+  # ── FastAPI application (local dev: uvicorn on 8000) ────────────────────────
   - job_name: llm_autopilot_api
     scrape_interval: 10s
     metrics_path: /metrics
     static_configs:
-      - targets: ['host.docker.internal:8000']
+      - targets: ['localhost:8000']
         labels:
           service: api
 
-  # ── Celery worker (via prometheus-client HTTP server) ───────────────────────
-  # Worker exposes metrics on port 9000 via start_http_server() in Phase 6
-  - job_name: llm_autopilot_worker
-    scrape_interval: 15s
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['host.docker.internal:9000']
-        labels:
-          service: worker
+  # ── Celery worker metrics HTTP server (port 9000) ───────────────────────────
+  # Worker exposes metrics on port 9000 via prometheus_client.start_http_server()
+  # Uncomment once the worker HTTP server is started (Phase 6)
+  # - job_name: llm_autopilot_worker
+  #   scrape_interval: 15s
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ['localhost:9000']
+  #       labels:
+  #         service: worker
 
-  # ── Postgres exporter (add postgres_exporter container for full DB metrics) ─
+  # ── Grafana Tempo (local, port 3200) ────────────────────────────────────────
+  - job_name: tempo
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:3200']
+        labels:
+          service: tempo
+
+  # ── Postgres exporter (optional — run postgres_exporter locally on 9187) ────
   # - job_name: postgres
   #   static_configs:
-  #     - targets: ['postgres_exporter:9187']
+  #     - targets: ['localhost:9187']
 
-  # ── Redis exporter ──────────────────────────────────────────────────────────
+  # ── Redis exporter (optional — run redis_exporter locally on 9121) ──────────
   # - job_name: redis
   #   static_configs:
-  #     - targets: ['redis_exporter:9121']
+  #     - targets: ['localhost:9121']

@@ -7,13 +7,14 @@ which FastAPI exposes via /metrics (make_asgi_app).
 
 Naming convention: <namespace>_<subsystem>_<unit>
 """
+
 from __future__ import annotations
 
 from prometheus_client import Counter, Gauge, Histogram, Info
 
 from llm_autopilot_core.config import get_settings
 
-_ns = get_settings().metrics_namespace   # "llm_autopilot"
+_ns = get_settings().metrics_namespace  # "llm_autopilot"
 
 # ── Request counters ──────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ cache_misses_total = Counter(
 verifications_total = Counter(
     f"{_ns}_verifications_total",
     "Async verification tasks executed",
-    ["status"],   # passed | failed | escalated | skipped
+    ["status"],  # passed | failed | escalated | skipped
 )
 
 quality_score = Histogram(
@@ -121,10 +122,13 @@ app_info = Info(
     "Static application metadata",
 )
 
+
 def initialise_info() -> None:
     s = get_settings()
-    app_info.info({
-        "version": s.app_version,
-        "environment": s.environment,
-        "embedding_model": s.embedding_model,
-    })
+    app_info.info(
+        {
+            "version": s.app_version,
+            "environment": s.environment,
+            "embedding_model": s.embedding_model,
+        }
+    )

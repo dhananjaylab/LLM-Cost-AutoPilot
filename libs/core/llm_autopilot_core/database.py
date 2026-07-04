@@ -14,10 +14,11 @@ Usage elsewhere (Celery tasks, scripts):
     async with managed_session() as session:
         result = await session.execute(...)
 """
+
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -37,8 +38,8 @@ engine = create_async_engine(
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_max_overflow,
     pool_timeout=settings.database_pool_timeout,
-    pool_pre_ping=True,          # detect stale connections before checkout
-    echo=settings.debug,         # log SQL in dev only
+    pool_pre_ping=True,  # detect stale connections before checkout
+    echo=settings.debug,  # log SQL in dev only
     echo_pool=settings.debug,
 )
 
@@ -55,6 +56,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 # ── Declarative base (all ORM models inherit from this) ───────────────────────
 
+
 class Base(DeclarativeBase):
     """
     Base class for all SQLAlchemy ORM models.
@@ -62,10 +64,12 @@ class Base(DeclarativeBase):
     Import this in each model module to register the table with Alembic:
         from llm_autopilot_core.database import Base
     """
+
     pass
 
 
 # ── Session helpers ───────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def managed_session() -> AsyncGenerator[AsyncSession, None]:
@@ -101,6 +105,7 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 # ── Startup / teardown helpers ────────────────────────────────────────────────
+
 
 async def check_connection() -> bool:
     """Ping the database. Used by /readyz health endpoint."""

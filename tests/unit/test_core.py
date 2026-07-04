@@ -2,29 +2,30 @@
 Unit tests for libs/core — config, registry, schemas.
 No external services required.
 """
+
 from __future__ import annotations
 
 import pytest
-
 from llm_autopilot_core.config import Settings, get_settings
 from llm_autopilot_core.registry import (
-    MODEL_REGISTRY,
     BASELINE_MODEL_KEY,
+    MODEL_REGISTRY,
     compute_cost,
     get_cheapest_model_for_tier,
     get_model,
     get_models_by_quality_tier,
 )
 from llm_autopilot_core.schemas import (
-    ComplexityTier,
     CompletionRequest,
+    ComplexityTier,
     Message,
     Provider,
     QualityTier,
 )
-
+from pydantic import ValidationError
 
 # ── Config tests ──────────────────────────────────────────────────────────────
+
 
 class TestSettings:
     def test_default_environment(self) -> None:
@@ -36,7 +37,7 @@ class TestSettings:
         assert not s.is_production
 
     def test_invalid_environment_raises(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             Settings(
                 environment="invalid",
                 database_url="postgresql+asyncpg://u:p@localhost/db",
@@ -58,6 +59,7 @@ class TestSettings:
 
 
 # ── Registry tests ────────────────────────────────────────────────────────────
+
 
 class TestModelRegistry:
     def test_registry_not_empty(self) -> None:
@@ -117,6 +119,7 @@ class TestModelRegistry:
 
 # ── Schema tests ──────────────────────────────────────────────────────────────
 
+
 class TestSchemas:
     def test_completion_request_valid(self) -> None:
         req = CompletionRequest(
@@ -127,11 +130,11 @@ class TestSchemas:
         assert req.temperature == 0.7
 
     def test_completion_request_invalid_role(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             Message(role="invalid_role", content="test")
 
     def test_completion_request_empty_messages(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             CompletionRequest(messages=[])
 
     def test_complexity_tier_values(self) -> None:

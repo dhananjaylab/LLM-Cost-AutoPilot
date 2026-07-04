@@ -19,12 +19,13 @@ Phase 4 / Phase 5 TODO:
     - Model versioning via classifier_versions table
     - Shadow testing logic
 """
+
 from __future__ import annotations
 
 import structlog
+from llm_autopilot_core.metrics import celery_tasks_total
 
 from llm_autopilot_worker.main import celery_app
-from llm_autopilot_core.metrics import celery_tasks_total
 
 logger = structlog.get_logger(__name__)
 
@@ -34,7 +35,7 @@ logger = structlog.get_logger(__name__)
     queue="retraining",
     max_retries=1,
 )
-def retrain_classifier() -> dict:
+def retrain_classifier() -> dict[str, str]:
     """
     Weekly classifier retraining job.
 
@@ -59,7 +60,7 @@ def retrain_classifier() -> dict:
         #     promote(new_model)
         # log_classifier_version(metrics)
 
-        result = {
+        result: dict[str, str] = {
             "status": "not_implemented",
             "message": "Phase 4 placeholder — full implementation in Phase 4",
         }
@@ -80,7 +81,7 @@ def retrain_classifier() -> dict:
     max_retries=2,
     default_retry_delay=300,
 )
-def aggregate_daily_costs() -> dict:
+def aggregate_daily_costs() -> dict[str, str]:
     """
     Daily cost aggregation.
 
@@ -100,7 +101,7 @@ def aggregate_daily_costs() -> dict:
         # await db.upsert_cost_aggregate(aggregate)
         # update_prometheus_gauges(aggregate)
 
-        result = {
+        result: dict[str, str] = {
             "status": "not_implemented",
             "message": "Phase 5 placeholder — full implementation in Phase 5",
         }
