@@ -1,0 +1,120 @@
+# Prometheus alert rules — LLM Cost Autopilot
+# Defines operational alerts for the API, cache, quality, and cost metrics.
+# To fire alerts, point Prometheus at an Alertmanager instance.
+
+groups:
+
+  # ── Availability ───────────────────────────────────────────────────────────
+  - name: llm_autopilot_availability
+    interval: 30s
+    rules:
+
+      - alert: APIDown
+        expr: up{job="llm_autopilot_api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "LLM AutoPilot API is unreachable"
+          description: "Prometheus cannot scrape {{ $labels.instance }}. The API has been down for > 1 minute."
+
+      - alert: WorkerDown
+        expr: up{job="llm_autopilot_worker"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Celery worker metrics endpoint is unreachable"
+          description: "Worker at {{ $labels.instance }} has been down for > 2 minutes."
+
+  # ── Error rate ─────────────────────────────────────────────────────────────
+  - name: llm_autopilot_errors
+    interval: 30s
+    rules:
+
+      - alert: HighErrorRate
+        expr: job:llm_autopilot_error_rate:percentage > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High LLM API error rate"
+          description: "Error rate is {{ printf \"%.1f\" $value }}% (threshold: 5%). Provider errors or routing failures occurring."
+
+      - alert: CriticalErrorRate
+        expr: job:llm_autopilot_error_rate:percentage > 20
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Critical LLM API error rate"
+          description: "Error rate is {{ printf \"%.1f\" $value }}% (threshold: 20%). Immediate investigation required."
+
+  # ── Latency ────────────────────────────────────────────────────────────────
+  - name: llm_autopilot_latency
+    interval: 30s
+    rules:
+
+      - alert: HighP95Latency
+        expr: job:llm_autopilot_latency:p95 > 5000
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "P95 latency exceeds 5 seconds"
+          description: "P95 latency is {{ printf \"%.0f\" $value }}ms for tier {{ $labels.complexity_tier }}."
+
+      - alert: HighP99Latency
+        expr: job:llm_autopilot_latency:p99 > 10000
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "P99 latency exceeds 10 seconds"
+          description: "P99 latency is {{ printf \"%.0f\" $value }}ms. SLA breach risk."
+
+  # ── Cache ──────────────────────────────────────────────────────────────────
+  - name: llm_autopilot_cache
+    interval: 60s
+    rules:
+
+      - alert: LowCacheHitRate
+        expr: job:llm_autopilot_cache_hit_rate:percentage < 10
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Semantic cache hit rate is very low"
+          description: "Cache hit rate is {{ printf \"%.1f\" $value }}% (expected ≥ 10%). Check Redis connectivity or similarity threshold."
+
+  # ── Quality / escalation ───────────────────────────────────────────────────
+  - name: llm_autopilot_quality
+    interval: 60s
+    rules:
+
+      - alert: HighEscalationRate
+        expr: job:llm_autopilot_escalation_rate:percentage > 15
+        for: 10m
+        labels:
+          severity: warning
+          team: ml
+        annotations:
+          summary: "Escalation rate is unusually high"
+          description: "{{ printf \"%.1f\" $value }}% of requests are being escalated. Classifier may be underperforming."
+
+      - alert: LowQualityScore
+        expr: job:llm_autopilot_quality_score:avg < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          team: ml
+        annotations:
+          summary: "Average LLM quality score is below threshold"
+          description: "Median quality score is {{ printf \"%.2f\" $value }} (threshold: 0.70). Review routing policy."
