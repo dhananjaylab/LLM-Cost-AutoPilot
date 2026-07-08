@@ -58,8 +58,7 @@ async def liveness() -> LivenessResponse:
     response_model=ReadinessResponse,
     summary="Readiness probe",
     description=(
-        "Checks PostgreSQL and Redis connectivity. "
-        "Returns 503 if either dependency is unreachable."
+        "Checks PostgreSQL and Redis connectivity. Returns 503 if either dependency is unreachable."
     ),
     responses={503: {"description": "One or more dependencies are not ready"}},
 )
