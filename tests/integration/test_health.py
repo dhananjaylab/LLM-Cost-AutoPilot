@@ -15,7 +15,7 @@ from httpx import ASGITransport, AsyncClient
 from llm_autopilot_api.main import app
 
 
-@pytest.fixture()
+@pytest.fixture
 async def client():
     """Async test client using ASGI transport (no real HTTP server needed)."""
     async with AsyncClient(

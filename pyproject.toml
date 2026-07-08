@@ -45,6 +45,10 @@ ignore = ["S101", "S104"]  # allow assert in tests; allow 0.0.0.0 bind
 "tests/**" = ["S", "ANN"]
 "alembic/**" = ["E402"]
 
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
+
 # ── Black ────────────────────────────────────────────────────────────────────
 [tool.black]
 line-length = 100
