@@ -10,7 +10,7 @@ Design rules:
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -19,19 +19,19 @@ from pydantic import BaseModel, Field, computed_field
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
 
-class ComplexityTier(str, Enum):
+class ComplexityTier(StrEnum):
     SIMPLE = "simple"  # reformatting, extraction, basic Q&A
     MODERATE = "moderate"  # summarisation, classification, structured analysis
     COMPLEX = "complex"  # multi-step reasoning, creative, nuanced judgement
 
 
-class QualityTier(str, Enum):
+class QualityTier(StrEnum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
 
-class Provider(str, Enum):
+class Provider(StrEnum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
@@ -39,14 +39,14 @@ class Provider(str, Enum):
     OLLAMA = "ollama"
 
 
-class EscalationReason(str, Enum):
+class EscalationReason(StrEnum):
     QUALITY_GAP = "quality_gap"  # verifier score below threshold
     CIRCUIT_OPEN = "circuit_open"  # primary provider circuit breaker tripped
     PROVIDER_ERROR = "provider_error"  # non-retriable provider error
     MANUAL = "manual"  # operator-initiated
 
 
-class VerificationStatus(str, Enum):
+class VerificationStatus(StrEnum):
     PENDING = "pending"
     PASSED = "passed"
     FAILED = "failed"
