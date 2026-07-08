@@ -1,0 +1,77 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "API (Uvicorn)",
+      "type": "shell",
+      "command": "uvicorn llm_autopilot_api.main:app --reload --port 8000",
+      "presentation": {
+        "group": "autopilot-services"
+      }
+    },
+    {
+      "label": "Celery Worker",
+      "type": "shell",
+      "command": "celery -A llm_autopilot_worker.main worker -Q verification,retraining -P solo --loglevel DEBUG -E",
+      "presentation": {
+        "group": "autopilot-services"
+      }
+    },
+    {
+      "label": "Celery Beat",
+      "type": "shell",
+      "command": "celery -A llm_autopilot_worker.main beat --loglevel DEBUG",
+      "presentation": {
+        "group": "autopilot-services"
+      }
+    },
+    {
+      "label": "Celery Flower",
+      "type": "shell",
+      "command": "celery -A llm_autopilot_worker.main flower --port=5555",
+      "presentation": {
+        "group": "autopilot-services"
+      }
+    },
+    {
+      "label": "Tempo (Observability)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File scripts\\obs-tempo.ps1",
+      "presentation": {
+        "group": "autopilot-services"
+      }
+    },
+    {
+      "label": "Prometheus (Observability)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File scripts\\obs-prometheus.ps1",
+      "presentation": {
+        "group": "autopilot-services"
+      }
+    },
+    {
+      "label": "Grafana (Observability)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File scripts\\obs-grafana.ps1",
+      "presentation": {
+        "group": "autopilot-services"
+      }
+    },
+    {
+      "label": "Start All Services",
+      "dependsOn": [
+        "API (Uvicorn)",
+        "Celery Worker",
+        "Celery Beat",
+        "Celery Flower",
+        "Tempo (Observability)",
+        "Prometheus (Observability)",
+        "Grafana (Observability)"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
