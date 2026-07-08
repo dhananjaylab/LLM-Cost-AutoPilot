@@ -51,6 +51,14 @@ if (-not (Test-Path $ConfigFile)) {
 # Ensure data directory exists
 New-Item -ItemType Directory -Force -Path $DataPath | Out-Null
 
+# ── Clean up any running Prometheus processes to free locked database files ──
+$existing = Get-Process prometheus -ErrorAction SilentlyContinue
+if ($existing) {
+    Write-Host "Stopping existing Prometheus process(es) (PIDs: $($existing.Id))..." -ForegroundColor Yellow
+    Stop-Process -Name prometheus -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
+
 Write-Host ""
 Write-Host "=== Prometheus ===" -ForegroundColor Cyan
 Write-Host "  Binary : $BinPath"
@@ -60,11 +68,17 @@ Write-Host "  UI     : http://localhost:$Port"
 Write-Host ""
 
 # ── Launch — quote every argument individually so PS doesn't mangle -- ────────
-# Note: Prometheus writes logs to stderr; redirect 2>&1 so PS doesn't
-#       treat them as errors (they're just INFO lines, not real errors).
-& $BinPath `
-    "--config.file=$ConfigFile" `
-    "--storage.tsdb.path=$DataPath" `
-    "--storage.tsdb.retention.time=$Retention" `
-    "--web.listen-address=:$Port" `
-    "--web.enable-lifecycle" 2>&1
+# Note: Prometheus writes logs to stderr. We temporarily set ErrorActionPreference
+#       to Continue so PowerShell doesn't treat these stderr logs as terminating errors.
+$OrgAction = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+try {
+    & $BinPath `
+        "--config.file=$ConfigFile" `
+        "--storage.tsdb.path=$DataPath" `
+        "--storage.tsdb.retention.time=$Retention" `
+        "--web.listen-address=:$Port" `
+        "--web.enable-lifecycle"
+} finally {
+    $ErrorActionPreference = $OrgAction
+}

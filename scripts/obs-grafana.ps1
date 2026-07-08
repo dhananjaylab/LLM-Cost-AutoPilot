@@ -45,6 +45,17 @@ Or set -GrafanaHome to your install path.
     }
 }
 
+# -- Check if port is already in use -------------------------------------------
+$portActive = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+if ($portActive) {
+    $pidUsingPort = $portActive.OwningProcess[0]
+    Write-Host "WARNING: Port $Port is already in use by process ID $pidUsingPort." -ForegroundColor Yellow
+    Write-Host "If this is the Grafana Windows service, you can stop it from an Administrator PowerShell prompt using:" -ForegroundColor Yellow
+    Write-Host "  Stop-Service -Name Grafana -Force" -ForegroundColor Cyan
+    Write-Error "Cannot start Grafana: Port $Port is in use."
+    exit 1
+}
+
 # -- Build absolute workspace paths -------------------------------------------
 $projectRoot            = [IO.Path]::GetFullPath("$PSScriptRoot\..")
 $sourceProvisioningDir  = Join-Path $projectRoot "infra\grafana\provisioning"
@@ -146,4 +157,12 @@ Write-Host "  UI           : http://localhost:$Port  (admin / autopilot)"
 Write-Host ""
 
 # -- Launch -- Grafana 13 syntax: grafana server --config=... --homepath=... --
-& $serverExe server "--config=$patchedIni" "--homepath=$GrafanaHome" 2>&1
+# Note: Grafana writes logs to stderr. We temporarily set ErrorActionPreference
+#       to Continue so PowerShell doesn't treat stderr logs as terminating errors.
+$OrgAction = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+try {
+    & $serverExe server "--config=$patchedIni" "--homepath=$GrafanaHome"
+} finally {
+    $ErrorActionPreference = $OrgAction
+}

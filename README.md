@@ -98,24 +98,43 @@ Deploy schema configurations using Alembic (runs as a no-op until database model
 uv run alembic upgrade head
 ```
 
-### 6. Start the Applications
+### 6. Start the Applications (Concurrently - Recommended)
+Instead of starting each server and service manually in a separate window, you can run them all at once using one of the following methods:
 
-#### A. Start the API Gateway
-Run the FastAPI development server:
-```powershell
-uvicorn llm_autopilot_api.main:app --reload --port 8000
-```
-The API is now running locally at [http://localhost:8000](http://localhost:8000) and documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
+#### Method 1: VS Code Tasks (Integrated Terminal)
+If you are using VS Code, a workspace task runner has been configured.
+1. Press `Ctrl + Shift + B` (or open the Command Palette `Ctrl + Shift + P` and search for **Tasks: Run Build Task**).
+2. Select **`Start All Services`**.
+3. VS Code will spin up all 7 applications and observability components in their own integrated terminal tabs.
 
-#### B. Start Celery worker & beat scheduler
-To run background tasks locally:
+#### Method 2: PowerShell Script (External Windows)
+You can run a single script to open 7 separate PowerShell windows for each service:
 ```powershell
-celery -A llm_autopilot_worker.main worker -Q verification,retraining -P solo --loglevel DEBUG -E
-celery -A llm_autopilot_worker.main beat --loglevel DEBUG
-celery -A llm_autopilot_worker.main flower --port=5555
+powershell -ExecutionPolicy Bypass -File scripts\start-all.ps1
 ```
 
-Run the worker, beat, and Flower commands in separate PowerShell windows.
+---
+
+### 7. Start the Applications (Manually)
+
+#### A. Core Application & Background Services
+Run the following commands in separate PowerShell windows:
+* **FastAPI API Gateway:**
+  ```powershell
+  uvicorn llm_autopilot_api.main:app --reload --port 8000
+  ```
+* **Celery Worker:**
+  ```powershell
+  celery -A llm_autopilot_worker.main worker -Q verification,retraining -P solo --loglevel DEBUG -E
+  ```
+* **Celery Beat Scheduler:**
+  ```powershell
+  celery -A llm_autopilot_worker.main beat --loglevel DEBUG
+  ```
+* **Celery Flower Dashboard:**
+  ```powershell
+  celery -A llm_autopilot_worker.main flower --port=5555
+  ```
 
 > [!NOTE]
 > * **`-P solo`**: Required on Windows to prevent `PermissionError: [WinError 5] Access is denied` errors caused by Celery's default multiprocessing library attempting to create process forks.
