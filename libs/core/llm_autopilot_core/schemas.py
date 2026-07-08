@@ -72,7 +72,7 @@ class ModelConfig(BaseModel):
     supports_system_prompt: bool = True
     enabled: bool = True
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def cost_per_1k_tokens(self) -> float:
         """Blended cost (input+output) per 1k tokens, assuming 1:1 ratio."""
@@ -128,7 +128,7 @@ class CompletionResponse(BaseModel):
     cache_hit: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    @computed_field  # type: ignore[misc]
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def total_tokens(self) -> int:
         return self.input_tokens + self.output_tokens
