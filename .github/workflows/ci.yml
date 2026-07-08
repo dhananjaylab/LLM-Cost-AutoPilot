@@ -12,7 +12,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.11"
-  UV_VERSION: "0.4.0"
+  UV_VERSION: "0.5.15"
 
 jobs:
   # ── Lint & Type-check ───────────────────────────────────────────────────────
