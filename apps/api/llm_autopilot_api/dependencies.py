@@ -15,7 +15,6 @@ Usage:
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any
 
 import redis.asyncio as aioredis
 from llm_autopilot_core.config import get_settings
@@ -34,14 +33,14 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 # ── Redis ─────────────────────────────────────────────────────────────────────
 
-_redis_pool: aioredis.Redis[Any] | None = None
+_redis_pool: aioredis.Redis | None = None
 
 
-async def get_redis() -> aioredis.Redis[Any]:
+async def get_redis() -> aioredis.Redis:
     """Return a singleton async Redis client from the connection pool."""
     global _redis_pool
     if _redis_pool is None:
-        _redis_pool = aioredis.from_url(
+        _redis_pool = aioredis.from_url(  # type: ignore[no-untyped-call]
             settings.redis_url,
             encoding="utf-8",
             decode_responses=False,  # raw bytes for vector storage

@@ -37,6 +37,6 @@ repos:
           - pydantic-settings>=2.3.0
           - sqlalchemy[mypy]>=2.0.30
           - types-PyYAML
-          - types-redis
+          - redis
         args: [--ignore-missing-imports]
         files: ^libs/|^apps/
