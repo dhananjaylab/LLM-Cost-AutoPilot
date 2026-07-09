@@ -80,7 +80,7 @@ async def readiness() -> ReadinessResponse:
     try:
         r = aioredis.from_url(settings.redis_url, socket_connect_timeout=2)  # type: ignore[no-untyped-call]
         await r.ping()
-        await r.close()
+        await r.aclose()
         checks["redis"] = "ok"
     except Exception as exc:
         logger.warning("readiness_redis_fail", error=str(exc))

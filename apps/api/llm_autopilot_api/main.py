@@ -31,7 +31,7 @@ from llm_autopilot_core.database import check_connection, dispose_engine
 from llm_autopilot_core.logging import configure_logging
 from llm_autopilot_core.metrics import initialise_info
 from llm_autopilot_core.registry import load_yaml_overrides
-from prometheus_client import make_asgi_app
+from prometheus_client import REGISTRY, generate_latest
 
 from llm_autopilot_api.routers import health
 
@@ -167,7 +167,13 @@ def create_app() -> FastAPI:
         return response
 
     # ── Prometheus metrics endpoint ───────────────────────────────────────────
-    app.mount("/metrics", make_asgi_app())
+    @app.get("/metrics", include_in_schema=False)
+    async def metrics() -> Response:
+        """Prometheus metrics endpoint."""
+        return Response(
+            content=generate_latest(REGISTRY),
+            media_type="text/plain; version=0.0.4; charset=utf-8",
+        )
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(health.router, prefix="/v1")
