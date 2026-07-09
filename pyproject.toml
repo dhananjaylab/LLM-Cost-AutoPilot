@@ -39,11 +39,15 @@ select = [
     "RET",            # flake8-return
     "SIM",            # flake8-simplify
 ]
-ignore = ["S101", "S104"]  # allow assert in tests; allow 0.0.0.0 bind
+ignore = ["S101", "S104", "A005"]  # allow assert in tests; allow 0.0.0.0 bind; allow logging module name
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "ANN"]
 "alembic/**" = ["E402"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
 
 # ── Black ────────────────────────────────────────────────────────────────────
 [tool.black]
@@ -54,9 +58,11 @@ target-version = ["py311"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
+warn_unused_ignores = false
 disallow_untyped_decorators = false
 ignore_missing_imports = true
 exclude = ["alembic/", "scripts/"]
+
 
 # ── Pytest ───────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]

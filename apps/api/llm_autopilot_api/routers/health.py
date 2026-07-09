@@ -58,8 +58,7 @@ async def liveness() -> LivenessResponse:
     response_model=ReadinessResponse,
     summary="Readiness probe",
     description=(
-        "Checks PostgreSQL and Redis connectivity. "
-        "Returns 503 if either dependency is unreachable."
+        "Checks PostgreSQL and Redis connectivity. Returns 503 if either dependency is unreachable."
     ),
     responses={503: {"description": "One or more dependencies are not ready"}},
 )
@@ -79,7 +78,7 @@ async def readiness() -> ReadinessResponse:
 
     # ── Redis ─────────────────────────────────────────────────────────────────
     try:
-        r = aioredis.from_url(settings.redis_url, socket_connect_timeout=2)
+        r = aioredis.from_url(settings.redis_url, socket_connect_timeout=2)  # type: ignore[no-untyped-call]
         await r.ping()
         await r.close()
         checks["redis"] = "ok"

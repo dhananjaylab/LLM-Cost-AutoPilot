@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import Any
 
 import structlog
 from structlog.types import EventDict, WrappedLogger
@@ -60,7 +61,7 @@ def configure_logging(log_level: str | None = None) -> None:
     for noisy in ("httpx", "httpcore", "uvicorn.access"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
-    shared_processors = [
+    shared_processors: list[Any] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
@@ -71,6 +72,7 @@ def configure_logging(log_level: str | None = None) -> None:
         _add_app_context,
     ]
 
+    renderer: Any
     if is_dev:
         renderer = structlog.dev.ConsoleRenderer(colors=True)
     else:
