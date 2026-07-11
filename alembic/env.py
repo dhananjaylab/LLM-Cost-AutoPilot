@@ -5,7 +5,8 @@ Reads DATABASE_URL from environment (overrides alembic.ini url).
 Imports Base from llm_autopilot_core.database so Alembic can autogenerate
 migrations by diffing ORM metadata against the live schema.
 
-Add new ORM model modules to the import block below so Alembic sees them.
+Add new ORM model modules to llm_autopilot_core/models/__init__.py so
+Alembic sees them — this file just needs to import that package once.
 """
 
 from __future__ import annotations
@@ -14,13 +15,17 @@ import asyncio
 from logging.config import fileConfig
 
 # ── Make sure all models are imported before autogenerate ─────────────────────
-# As you add ORM model files in Phase 5, add imports here:
-#   from llm_autopilot_core.models.requests import Request          # noqa: F401
-#   from llm_autopilot_core.models.responses import Response        # noqa: F401
-#   from llm_autopilot_core.models.routing import RoutingDecision   # noqa: F401
-#   from llm_autopilot_core.models.verification import Verification # noqa: F401
-#   from llm_autopilot_core.models.costs import CostAggregate       # noqa: F401
+# Importing the models package (rather than Base alone) registers every
+# ORM model's table with Base.metadata before Alembic diffs the schema.
 from llm_autopilot_core.database import Base  # noqa: F401 — registers metadata
+from llm_autopilot_core.models import (  # noqa: F401
+    ClassifierVersion,
+    CostAggregate,
+    Request,
+    Response,
+    RoutingDecision,
+    Verification,
+)
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
