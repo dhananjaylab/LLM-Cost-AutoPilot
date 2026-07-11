@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # ── OpenTelemetry tracing (optional) ──────────────────────────────────────
     if settings.enable_tracing and settings.otlp_endpoint:
-        _configure_tracing()
+        _configure_tracing(app)
 
     yield
 
@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("shutdown_complete")
 
 
-def _configure_tracing() -> None:
+def _configure_tracing(app: FastAPI | None = None) -> None:
     """Set up OTLP exporter for distributed tracing (Jaeger, Tempo, etc.)"""
     try:
         from opentelemetry import trace
@@ -104,7 +104,13 @@ def _configure_tracing() -> None:
             BatchSpanProcessor(OTLPSpanExporter(endpoint=settings.otlp_endpoint))
         )
         trace.set_tracer_provider(provider)
-        FastAPIInstrumentor.instrument()
+
+        fastapi_instrumentor = FastAPIInstrumentor()
+        if app is not None:
+            fastapi_instrumentor.instrument_app(app, tracer_provider=provider)
+        else:
+            fastapi_instrumentor.instrument()
+
         SQLAlchemyInstrumentor().instrument()
         logger.info("tracing_configured", endpoint=settings.otlp_endpoint)
     except ImportError:

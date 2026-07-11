@@ -5,7 +5,11 @@ No external services required.
 
 from __future__ import annotations
 
+import sys
+import types
+
 import pytest
+from llm_autopilot_api import main as api_main
 from llm_autopilot_core.config import Settings, get_settings
 from llm_autopilot_core.registry import (
     BASELINE_MODEL_KEY,
@@ -59,6 +63,111 @@ class TestSettings:
 
 
 # ── Registry tests ────────────────────────────────────────────────────────────
+
+
+def test_configure_tracing_uses_instrumentor_instances(monkeypatch: pytest.MonkeyPatch) -> None:
+    instrumented: list[str] = []
+
+    class DummyInstrumentor:
+        def __init__(self) -> None:
+            self.instantiated = True
+
+        def instrument(self) -> None:
+            instrumented.append(type(self).__name__)
+
+    fake_trace = types.ModuleType("opentelemetry.trace")
+    fake_trace.set_tracer_provider = lambda provider: None
+
+    fake_sdk_resources = types.ModuleType("opentelemetry.sdk.resources")
+
+    class DummyResource:
+        @staticmethod
+        def create(_: object) -> object:
+            return {}
+
+    fake_sdk_resources.Resource = DummyResource
+
+    fake_sdk_trace = types.ModuleType("opentelemetry.sdk.trace")
+
+    class DummyTracerProvider:
+        def __init__(self, resource: object | None = None) -> None:
+            self.resource = resource
+
+        def add_span_processor(self, processor: object) -> None:
+            self.processor = processor
+
+    fake_sdk_trace.TracerProvider = DummyTracerProvider
+
+    fake_sdk_trace_export = types.ModuleType("opentelemetry.sdk.trace.export")
+
+    class DummyBatchSpanProcessor:
+        def __init__(self, exporter: object) -> None:
+            self.exporter = exporter
+
+    fake_sdk_trace_export.BatchSpanProcessor = DummyBatchSpanProcessor
+
+    fake_otlp_exporter = types.ModuleType("opentelemetry.exporter.otlp.proto.http.trace_exporter")
+
+    class DummyOTLPSpanExporter:
+        def __init__(self, endpoint: str | None = None) -> None:
+            self.endpoint = endpoint
+
+    fake_otlp_exporter.OTLPSpanExporter = DummyOTLPSpanExporter
+
+    fake_fastapi_module = types.ModuleType("opentelemetry.instrumentation.fastapi")
+    fake_fastapi_module.FastAPIInstrumentor = DummyInstrumentor
+
+    fake_sqlalchemy_module = types.ModuleType("opentelemetry.instrumentation.sqlalchemy")
+    fake_sqlalchemy_module.SQLAlchemyInstrumentor = DummyInstrumentor
+
+    monkeypatch.setitem(sys.modules, "opentelemetry", types.ModuleType("opentelemetry"))
+    monkeypatch.setitem(sys.modules, "opentelemetry.trace", fake_trace)
+    monkeypatch.setitem(sys.modules, "opentelemetry.sdk", types.ModuleType("opentelemetry.sdk"))
+    monkeypatch.setitem(sys.modules, "opentelemetry.sdk.resources", fake_sdk_resources)
+    monkeypatch.setitem(sys.modules, "opentelemetry.sdk.trace", fake_sdk_trace)
+    monkeypatch.setitem(sys.modules, "opentelemetry.sdk.trace.export", fake_sdk_trace_export)
+    monkeypatch.setitem(
+        sys.modules,
+        "opentelemetry.exporter",
+        types.ModuleType("opentelemetry.exporter"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "opentelemetry.exporter.otlp",
+        types.ModuleType("opentelemetry.exporter.otlp"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "opentelemetry.exporter.otlp.proto",
+        types.ModuleType("opentelemetry.exporter.otlp.proto"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "opentelemetry.exporter.otlp.proto.http",
+        types.ModuleType("opentelemetry.exporter.otlp.proto.http"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "opentelemetry.exporter.otlp.proto.http.trace_exporter",
+        fake_otlp_exporter,
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "opentelemetry.instrumentation",
+        types.ModuleType("opentelemetry.instrumentation"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "opentelemetry.instrumentation.fastapi",
+        fake_fastapi_module,
+    )
+    monkeypatch.setitem(
+        sys.modules, "opentelemetry.instrumentation.sqlalchemy", fake_sqlalchemy_module
+    )
+
+    api_main._configure_tracing()
+
+    assert instrumented == ["DummyInstrumentor", "DummyInstrumentor"]
 
 
 class TestModelRegistry:
