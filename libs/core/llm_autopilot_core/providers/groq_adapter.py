@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import groq
 from groq import AsyncGroq
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.providers.base import BaseProviderAdapter, ProviderError
 from llm_autopilot_core.schemas import Message, ModelConfig, Provider, ProviderResponse
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 _RETRYABLE = (
     groq.RateLimitError,

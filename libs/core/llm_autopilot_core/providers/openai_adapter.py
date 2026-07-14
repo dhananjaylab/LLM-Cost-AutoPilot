@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import openai
+from openai import AsyncOpenAI
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.providers.base import BaseProviderAdapter, ProviderError
 from llm_autopilot_core.schemas import Message, ModelConfig, Provider, ProviderResponse
-from openai import AsyncOpenAI
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 # Transient errors worth retrying — verified against openai>=1.x's exception hierarchy.
 _RETRYABLE = (
