@@ -85,6 +85,43 @@ Set up git hook checks to auto-format and lint on every commit:
 uv run pre-commit install
 ```
 
+#### E. Code Quality & Linting (Optional)
+
+The project uses multiple tools for code quality checks. While these run automatically via pre-commit hooks on each commit, you can also run them manually:
+
+**Run all linting and formatting checks:**
+```powershell
+uv run pre-commit run --all-files
+```
+
+**Run specific tools:**
+
+* **Ruff** (Fast Python linter with auto-fix):
+  ```powershell
+  uv run ruff check --fix .
+  ```
+
+* **Black** (Code formatter):
+  ```powershell
+  uv run black .
+  ```
+
+* **Mypy** (Static type checker):
+  ```powershell
+  uv run mypy libs/core/llm_autopilot_core/providers/
+  ```
+
+* **Pyupgrade** (Remove redundant type casts and upgrades syntax):
+  ```powershell
+  uv run pyupgrade --py311-plus libs/core/llm_autopilot_core/providers/
+  ```
+
+> [!TIP]
+> **Auto-fixing mypy errors:** Use `pyupgrade` or `ruff` to automatically fix redundant type casts and other code quality issues:
+> ```powershell
+> uv run ruff check --select UP --fix libs/
+> ```
+
 ### 4. Boot Core Services (Local vs Docker)
 If using local engines/databases (like Neon and Redis Cloud), ensure they are active.
 Otherwise, if running local containers:

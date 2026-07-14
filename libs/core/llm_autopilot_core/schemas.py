@@ -101,15 +101,30 @@ class CompletionRequest(BaseModel):
 
 
 class ProviderResponse(BaseModel):
-    """Raw result returned by a provider adapter before cost enrichment."""
+    """
+    Raw result of a single provider call — the "standardized Response
+    object" from Phase 1, Task 2: output text, tokens (in + out), latency,
+    cost, and the model ID.
+
+    Adapters (providers/*_adapter.py) construct this with latency_ms=0.0
+    and no cost — providers.dispatcher.send_request() fills both in after
+    timing the call and pricing it via registry.compute_cost(), since
+    adapters shouldn't need to know about pricing.
+    """
 
     content: str
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
     latency_ms: float = Field(ge=0.0)
+    cost_usd: float = Field(default=0.0, ge=0.0)
     model_id: str
     provider: Provider
     raw_response: dict[str, Any] = Field(default_factory=dict)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
 
 
 class CompletionResponse(BaseModel):

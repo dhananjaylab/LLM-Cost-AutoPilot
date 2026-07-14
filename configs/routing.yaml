@@ -22,25 +22,25 @@ routing:
       description: "Reformatting, extraction, direct Q&A from provided context"
       models:
         - groq/llama-3.1-8b-instant     # ~$0.05/1M tokens, 150ms avg
-        - ollama/llama3.1               # $0.00, slower but always available
-        - groq/mixtral-8x7b-32768       # fallback if 8B circuit trips
+        # - ollama/llama3.1               # $0.00, slower but always available
+        - groq/llama-3.3-70b-versatile   # fallback if 8B circuit trips
       max_latency_ms: 3000
 
     moderate:
       description: "Summarisation, classification, structured analysis"
       models:
-        - google/gemini-1.5-flash        # ~$0.075/1M input, very fast
-        - groq/llama-3.1-70b-versatile   # $0.59/1M, strong open-weight
+        - google/Gemini 3.5 Flash        # ~$0.075/1M input, very fast
+        - groq/llama-3.1-8b-instant   # $0.59/1M, strong open-weight
         - openai/gpt-4o-mini             # $0.15/1M input, reliable
-        - anthropic/claude-3-5-haiku-20241022  # $0.80/1M, high quality fallback
+        - anthropic/claude-haiku-4-5  # $0.80/1M, high quality fallback
       max_latency_ms: 5000
 
     complex:
       description: "Multi-step reasoning, creative generation, nuanced judgement"
       models:
-        - anthropic/claude-3-5-sonnet-20241022  # best reasoning, 200K context
+        - anthropic/claude-sonnet-4-6  # best reasoning, 200K context
         - openai/gpt-4o                          # strong baseline
-        - google/gemini-1.5-pro                  # 1M context window advantage
+        - google/gemini-3.1-pro                  # 1M context window advantage
       max_latency_ms: 15000
 
 # Model used by the async verifier as a judge
