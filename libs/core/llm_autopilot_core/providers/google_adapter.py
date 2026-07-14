@@ -5,10 +5,11 @@ from __future__ import annotations
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types as genai_types
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.providers.base import BaseProviderAdapter, ProviderError
 from llm_autopilot_core.schemas import Message, ModelConfig, Provider, ProviderResponse
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 # google-genai raises ClientError (4xx) vs ServerError (5xx); only the
 # latter (and its base APIError for connection-level failures) is worth retrying.
