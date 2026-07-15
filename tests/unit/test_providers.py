@@ -18,7 +18,7 @@ from llm_autopilot_core.providers import ProviderError, send_request
 from llm_autopilot_core.providers.base import BaseProviderAdapter
 from llm_autopilot_core.providers.dispatcher import _ADAPTERS, _BREAKERS
 from llm_autopilot_core.registry import MODEL_REGISTRY, compute_cost
-from llm_autopilot_core.schemas import Message, Provider
+from llm_autopilot_core.schemas import Message, ModelConfig, Provider, QualityTier
 
 # ── Fixtures: fake SDK response shapes (mirrors what the real SDKs return) ────
 
@@ -104,7 +104,7 @@ class TestSendRequestOpenAI:
 
 class TestSendRequestAnthropic:
     async def test_system_message_is_split_out(self) -> None:
-        model_config = MODEL_REGISTRY["anthropic/claude-3-5-haiku-20241022"]
+        model_config = MODEL_REGISTRY["anthropic/claude-haiku-4-5"]
         captured: dict = {}
 
         async def _capture_and_respond(**kwargs: object) -> SimpleNamespace:
@@ -132,8 +132,25 @@ class TestSendRequestAnthropic:
 
 class TestSendRequestOllama:
     async def test_ollama_needs_no_api_key(self) -> None:
-        """Ollama is the only provider that should work with zero configured secrets."""
-        model_config = MODEL_REGISTRY["ollama/llama3.1"]
+        """
+        Ollama is the only provider that should work with zero configured
+        secrets. NOTE: as of this test, MODEL_REGISTRY has no ollama/* entry
+        (it was removed after Task 2 was implemented) — this ModelConfig is
+        built locally so the adapter itself stays covered regardless. If
+        Ollama support is intentionally dropped, this test (and the adapter/
+        dispatcher wiring for Provider.OLLAMA) should be removed too.
+        """
+        model_config = ModelConfig(
+            provider=Provider.OLLAMA,
+            model_id="llama3.1",
+            display_name="Llama 3.1 8B (Local)",
+            cost_per_input_token=0.0,
+            cost_per_output_token=0.0,
+            avg_latency_ms=2_500,
+            quality_tier=QualityTier.LOW,
+            context_window=128_000,
+            max_output_tokens=4_096,
+        )
         fake_resp = SimpleNamespace(
             json=lambda: _fake_ollama_response("local reply", 12, 6),
             raise_for_status=lambda: None,

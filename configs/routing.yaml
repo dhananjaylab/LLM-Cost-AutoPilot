@@ -29,7 +29,7 @@ routing:
     moderate:
       description: "Summarisation, classification, structured analysis"
       models:
-        - google/Gemini 3.5 Flash        # ~$0.075/1M input, very fast
+        - google/gemini-3.5-flash        # ~$0.075/1M input, very fast
         - groq/llama-3.1-8b-instant   # $0.59/1M, strong open-weight
         - openai/gpt-4o-mini             # $0.15/1M input, reliable
         - anthropic/claude-haiku-4-5  # $0.80/1M, high quality fallback
@@ -40,7 +40,7 @@ routing:
       models:
         - anthropic/claude-sonnet-4-6  # best reasoning, 200K context
         - openai/gpt-4o                          # strong baseline
-        - google/gemini-3.1-pro                  # 1M context window advantage
+        - google/gemini-3.1-pro-preview           # 1M context window advantage
       max_latency_ms: 15000
 
 # Model used by the async verifier as a judge
