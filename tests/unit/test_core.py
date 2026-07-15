@@ -172,7 +172,9 @@ def test_configure_tracing_uses_instrumentor_instances(monkeypatch: pytest.Monke
 
 class TestModelRegistry:
     def test_registry_not_empty(self) -> None:
-        assert len(MODEL_REGISTRY) >= 11
+        # Ollama entries are deliberately commented out in registry.py for now
+        # (local-model support paused, not removed) — 9 cloud-provider models.
+        assert len(MODEL_REGISTRY) >= 9
 
     def test_all_providers_represented(self) -> None:
         providers = {m.provider for m in MODEL_REGISTRY.values()}
@@ -180,7 +182,9 @@ class TestModelRegistry:
         assert Provider.ANTHROPIC in providers
         assert Provider.GOOGLE in providers
         assert Provider.GROQ in providers
-        assert Provider.OLLAMA in providers
+        # Provider.OLLAMA intentionally NOT asserted here — its registry
+        # entries are commented out for now. Re-add this assertion when
+        # Ollama support is turned back on.
 
     def test_baseline_model_exists(self) -> None:
         assert BASELINE_MODEL_KEY in MODEL_REGISTRY
@@ -194,9 +198,13 @@ class TestModelRegistry:
     def test_get_model_invalid_key(self) -> None:
         assert get_model("nonexistent/model") is None
 
-    def test_ollama_models_are_free(self) -> None:
+    def test_ollama_models_are_free_when_enabled(self) -> None:
+        """
+        Ollama entries are currently commented out in registry.py, so this
+        is a forward-looking check rather than a live assertion: if/when
+        Ollama is re-enabled, every entry for it must still be free.
+        """
         ollama_models = [m for m in MODEL_REGISTRY.values() if m.provider == Provider.OLLAMA]
-        assert len(ollama_models) >= 2
         for m in ollama_models:
             assert m.cost_per_input_token == 0.0
             assert m.cost_per_output_token == 0.0
@@ -208,8 +216,9 @@ class TestModelRegistry:
     def test_get_cheapest_model_for_low_tier(self) -> None:
         cheapest = get_cheapest_model_for_tier(QualityTier.LOW)
         assert cheapest is not None
-        # Ollama ($0) should be cheapest
-        assert cheapest.cost_per_input_token == 0.0
+        # With Ollama ($0) currently disabled, Groq's low-latency 8B variant
+        # is the cheapest LOW-tier model in the registry.
+        assert cheapest.cost_per_input_token == 5e-08
 
     def test_compute_cost(self) -> None:
         model = get_model("openai/gpt-4o")
