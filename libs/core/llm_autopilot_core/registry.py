@@ -70,7 +70,7 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         max_output_tokens=8_192,
     ),
     # ── Google ────────────────────────────────────────────────────────────────
-    "google/Gemini 3.1 Pro": ModelConfig(
+    "google/gemini-3.1-pro-preview": ModelConfig(
         provider=Provider.GOOGLE,
         model_id="gemini-3.1-pro-preview",
         display_name="Gemini 3.1 Pro",
@@ -81,7 +81,7 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         context_window=1_000_000,
         max_output_tokens=8_192,
     ),
-    "google/Gemini 3.5 Flash": ModelConfig(
+    "google/gemini-3.5-flash": ModelConfig(
         provider=Provider.GOOGLE,
         model_id="gemini-3.5-flash",
         display_name="Gemini 3.5 Flash",
