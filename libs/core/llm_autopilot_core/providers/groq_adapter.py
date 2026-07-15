@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import groq
 from groq import AsyncGroq
+from groq.types.chat import ChatCompletionMessageParam
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from llm_autopilot_core.config import get_settings
@@ -47,10 +48,17 @@ class GroqAdapter(BaseProviderAdapter):
         temperature: float,
     ) -> ProviderResponse:
         client = self._get_client()
+        messages_param: list[ChatCompletionMessageParam] = [
+            {
+                "role": m.role,
+                "content": m.content,
+            }  # type: ignore[typeddict-item]
+            for m in messages
+        ]
         try:
             completion = await client.chat.completions.create(
                 model=model_config.model_id,
-                messages=[{"role": m.role, "content": m.content} for m in messages],
+                messages=messages_param,
                 max_tokens=max_tokens,
                 temperature=temperature,
             )
