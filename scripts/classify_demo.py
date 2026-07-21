@@ -77,7 +77,7 @@ def main() -> int:
             f"{result.tier.value:<10}{result.confidence:>7.2f}  "
             f"{model_label:<32}{decision.reason}{override_flag}"
         )
-        print(f"           prompt: {prompt[:78]}")
+        print(f"prompt: {prompt[:78]}")
         print()
 
     return 0
