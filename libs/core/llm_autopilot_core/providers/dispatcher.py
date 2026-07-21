@@ -1,20 +1,12 @@
 """
-send_request() — the single entrypoint every caller (future router,
-Celery verifier, baseline test script) goes through to call any model
-in MODEL_REGISTRY.
+send_request() — the single entrypoint every caller (router, Celery verifier,
+baseline test script) goes through to call any model in MODEL_REGISTRY.
 
-Responsibilities that live HERE (not in individual adapters), so adding
-a 6th provider never touches this file:
-  - timing the call -> latency_ms
-  - pricing the call -> cost_usd (via registry.compute_cost, already built)
-  - circuit breaking per provider (feeds circuit_breaker_state gauge)
-  - Prometheus metrics (cost_usd_total, request_latency_ms, requests_errors_total)
-  - structured logging
-
-Circuit breaking uses providers.circuit_breaker.AsyncCircuitBreaker, a
-small native-asyncio implementation — see that module's docstring for
-why pybreaker's call_async isn't used here (it requires tornado, which
-isn't installed and isn't worth adding).
+Phase 2 addition: is_provider_available() — a thin read-only accessor over
+the same _BREAKERS dict used by send_request(), so llm_autopilot_core.routing
+can skip providers whose circuit is OPEN without importing dispatcher
+internals or duplicating breaker state. No behavior of send_request() itself
+changes.
 """
 
 from __future__ import annotations
@@ -53,8 +45,6 @@ _ADAPTERS: dict[Provider, BaseProviderAdapter] = {
     Provider.OLLAMA: OllamaAdapter(),
 }
 
-# One breaker per provider: 5 consecutive failures trips it open for 30s.
-# Ollama is local, so a blip shouldn't be punished as hard as a paid API's.
 _BREAKERS: dict[Provider, AsyncCircuitBreaker] = {
     provider: AsyncCircuitBreaker(
         name=provider.value,
@@ -71,6 +61,15 @@ _BREAKER_STATE_VALUE: dict[BreakerState, int] = {
 }
 
 
+def is_provider_available(provider: Provider) -> bool:
+    """
+    Read-only check used by the routing layer: True unless the provider's
+    circuit breaker is currently OPEN. HALF_OPEN counts as available (that's
+    the probe state — the breaker itself decides whether the probe succeeds).
+    """
+    return _BREAKERS[provider].current_state != BreakerState.OPEN
+
+
 async def send_request(
     prompt: str | list[Message],
     model_config: ModelConfig,
@@ -78,17 +77,6 @@ async def send_request(
     max_tokens: int = 1024,
     temperature: float = 0.7,
 ) -> ProviderResponse:
-    """
-    Send a request to whichever provider/model `model_config` names and
-    return a standardized, fully-costed ProviderResponse.
-
-    `prompt` can be a bare string (wrapped as a single user message) or a
-    pre-built list[Message] for multi-turn / system-prompt use cases.
-
-    Raises ProviderError on any failure — including circuit-breaker trips,
-    which surface as ProviderError(retryable=True) so callers can treat
-    "breaker open" the same as any other transient failure.
-    """
     messages = [Message(role="user", content=prompt)] if isinstance(prompt, str) else prompt
     adapter = _ADAPTERS[model_config.provider]
     breaker = _BREAKERS[model_config.provider]
@@ -98,11 +86,7 @@ async def send_request(
 
     try:
         raw = await breaker.call(
-            adapter.send,
-            messages,
-            model_config,
-            max_tokens=max_tokens,
-            temperature=temperature,
+            adapter.send, messages, model_config, max_tokens=max_tokens, temperature=temperature
         )
     except CircuitOpenError as exc:
         circuit_breaker_state.labels(provider=model_config.provider.value).set(

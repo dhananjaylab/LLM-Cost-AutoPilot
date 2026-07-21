@@ -85,6 +85,11 @@ class Settings(BaseSettings):
     # Max latency (ms) to wait for escalation rerun
     escalation_max_latency_ms: int = Field(default=5000, ge=1000)
 
+    # ── Phase 2: complexity classifier ────────────────────────────────────────
+    # Where the trained sklearn pipeline artifact lives. train_classifier.py
+    # writes here; ComplexityClassifier lazily loads from here.
+    classifier_model_path: str = "var/classifier/model.joblib"
+
     # ── Observability ─────────────────────────────────────────────────────────
     enable_tracing: bool = True
     otlp_endpoint: str | None = None  # e.g. "http://jaeger:4318"

@@ -9,6 +9,6 @@ Public API:
 from __future__ import annotations
 
 from llm_autopilot_core.providers.base import BaseProviderAdapter, ProviderError
-from llm_autopilot_core.providers.dispatcher import send_request
+from llm_autopilot_core.providers.dispatcher import is_provider_available, send_request
 
-__all__ = ["BaseProviderAdapter", "ProviderError", "send_request"]
+__all__ = ["BaseProviderAdapter", "ProviderError", "is_provider_available", "send_request"]

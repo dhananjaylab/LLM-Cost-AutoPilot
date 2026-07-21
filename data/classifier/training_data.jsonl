@@ -1,0 +1,218 @@
+{"prompt": "Summarize the main point of this email in one line: 'Hi team, following our discussion yesterday, we've decided to postpone the product launch by two weeks to allow more time for QA testing.'", "tier": "moderate"}
+{"prompt": "Compose a short poem about the feeling of starting a new job.", "tier": "complex"}
+{"prompt": "Translate 'Happy birthday' into Portuguese.", "tier": "simple"}
+{"prompt": "Classify this online comment as toxic or non-toxic: 'I disagree with your take but I see where you're coming from.'", "tier": "moderate"}
+{"prompt": "Compose a limerick about a cat who believes it runs the household.", "tier": "complex"}
+{"prompt": "Give a two-sentence summary of this article excerpt: The new smartphone features a larger battery, a faster processor, and an improved camera system. Reviewers have praised the display quality but noted the price increase may deter budget-conscious buyers.", "tier": "moderate"}
+{"prompt": "Extract the email address from this text: 'Hi, this is Wei Zhang, you can reach me at wei.zhang@research.edu for any questions.'", "tier": "simple"}
+{"prompt": "What is 8 multiplied by 12?", "tier": "simple"}
+{"prompt": "Classify this app store review as a feature complaint or a bug complaint: 'Every time I try to upload a photo the app freezes.'", "tier": "moderate"}
+{"prompt": "What is 19 + 42?", "tier": "simple"}
+{"prompt": "Classify this social media comment as constructive criticism or a personal attack: 'Your argument ignores the counterexamples raised earlier in the thread.'", "tier": "moderate"}
+{"prompt": "How many days are in February during a leap year?", "tier": "simple"}
+{"prompt": "Extract the email address from this text: 'Hi, this is Priya Sharma, you can reach me at priya.sharma@tech.io for any questions.'", "tier": "simple"}
+{"prompt": "Classify this GitHub issue as a bug, enhancement, or documentation request: 'The README is missing setup instructions for Windows.'", "tier": "moderate"}
+{"prompt": "Summarize this contract clause in simple terms: 'Either party may terminate this agreement with 30 days written notice, provided all outstanding invoices are settled prior to the termination date.'", "tier": "moderate"}
+{"prompt": "What is the capital of Mexico?", "tier": "simple"}
+{"prompt": "Convert this temperature from Celsius to Fahrenheit: 20 degrees.", "tier": "simple"}
+{"prompt": "Provide a brief summary of this news snippet: A wildfire in the northern region has been contained after three days, with no reported injuries, thanks to early evacuation orders and favorable wind conditions.", "tier": "moderate"}
+{"prompt": "What is the capital of Australia?", "tier": "simple"}
+{"prompt": "Recommend whether a startup founder should take on a co-founder at this stage, given the trade-offs of equity dilution versus shared workload.", "tier": "complex"}
+{"prompt": "A retail company's sales dropped 15% in one quarter despite increased marketing spend. Analyze possible explanations and how you would investigate further.", "tier": "complex"}
+{"prompt": "Discuss whether a company should disclose an internal security breach immediately or wait until an investigation is complete, weighing transparency against accuracy.", "tier": "complex"}
+{"prompt": "Categorize these expenses as fixed or variable costs: rent, electricity bill, groceries, insurance premium, dining out.", "tier": "moderate"}
+{"prompt": "Diagnose the likely cause of a sudden spike in customer churn and outline what data you would need to confirm your hypothesis.", "tier": "complex"}
+{"prompt": "Classify this warranty claim as valid or likely fraudulent based on the description given.", "tier": "moderate"}
+{"prompt": "Classify this comment as a question, a complaint, or a compliment: 'This tutorial was exactly what I needed, thank you!'", "tier": "moderate"}
+{"prompt": "You have three boxes of different weights and a balance scale with only two weighings allowed. Explain a strategy to determine which box is the heaviest.", "tier": "complex"}
+{"prompt": "What is 14 multiplied by 6?", "tier": "simple"}
+{"prompt": "What is the capital of Brazil?", "tier": "simple"}
+{"prompt": "Write a short conversation between an inventor and their creation, a robot experiencing doubt for the first time.", "tier": "complex"}
+{"prompt": "Given these constraints \u2014 a $50,000 budget, a 3-month deadline, and a team of four engineers \u2014 design a rough plan for building a minimum viable product for a scheduling app.", "tier": "complex"}
+{"prompt": "Extract the email address from this text: 'Hi, this is John Smith, you can reach me at john.smith@company.org for any questions.'", "tier": "simple"}
+{"prompt": "What is the capital of Canada?", "tier": "simple"}
+{"prompt": "What is 12 + 7?", "tier": "simple"}
+{"prompt": "Classify this news headline by topic (politics, sports, technology, or entertainment): 'Local team clinches championship after dramatic overtime win.'", "tier": "moderate"}
+{"prompt": "Extract the email address from this text: 'Hi, this is Amara Okafor, you can reach me at amara.okafor@ngo.org for any questions.'", "tier": "simple"}
+{"prompt": "Discuss the ethical considerations of a company using AI to screen job applicants without human review.", "tier": "complex"}
+{"prompt": "What does the abbreviation 'CPU' stand for?", "tier": "simple"}
+{"prompt": "Classify this text message as urgent or non-urgent: 'No rush, whenever you get a chance can you send me that file?'", "tier": "moderate"}
+{"prompt": "Compare these two cloud providers in a table with columns for pricing, uptime SLA, and support quality: AWS and Azure.", "tier": "moderate"}
+{"prompt": "Reformat this name from 'Smith, John' to 'John Smith'.", "tier": "simple"}
+{"prompt": "Analyze the long-term implications of a company adopting a four-day work week, considering productivity, morale, and client expectations.", "tier": "complex"}
+{"prompt": "Classify this product review as positive or negative: 'Absolutely love this. Best purchase I've made all year.'", "tier": "moderate"}
+{"prompt": "Critically assess the argument that automation will lead to net job losses over the next decade, presenting both supporting and opposing evidence.", "tier": "complex"}
+{"prompt": "What is the capital of Italy?", "tier": "simple"}
+{"prompt": "Imagine a world where gravity briefly reverses every night, and write a short scene depicting how one family adapts.", "tier": "complex"}
+{"prompt": "What is the capital of Norway?", "tier": "simple"}
+{"prompt": "What is the capital of Thailand?", "tier": "simple"}
+{"prompt": "Translate 'What time is it?' into Korean.", "tier": "simple"}
+{"prompt": "Summarize this quarterly earnings snippet in one sentence: Revenue grew 12% year over year while operating costs rose only 4%, resulting in improved margins.", "tier": "moderate"}
+{"prompt": "Extract the person's name and phone number from this text: 'Carlos Mendes can be reached at 555-903-6612 regarding the delivery.'", "tier": "simple"}
+{"prompt": "Brainstorm five creative names for a new coffee shop that specializes in single-origin pour-overs.", "tier": "complex"}
+{"prompt": "Write a letter from a character to their future self, ten years from now.", "tier": "complex"}
+{"prompt": "Write a one-paragraph story about a robot who discovers music for the first time.", "tier": "complex"}
+{"prompt": "A recipe serves 4 people and requires 2.5 cups of flour. Walk through how to adjust the recipe to serve 15 people, explaining your reasoning.", "tier": "complex"}
+{"prompt": "Summarize this legal notice in plain English: 'Failure to respond within 14 days of receipt of this notice may result in default judgment being entered against you.'", "tier": "moderate"}
+{"prompt": "Condense this meeting transcript into key takeaways: 'We discussed the Q3 budget overrun, agreed to cut marketing spend by 10%, and decided to revisit hiring plans next quarter.'", "tier": "moderate"}
+{"prompt": "Evaluate whether a company should prioritize fixing technical debt or shipping new features next quarter, and justify your reasoning.", "tier": "complex"}
+{"prompt": "What is 45 + 23?", "tier": "simple"}
+{"prompt": "Organize this list of chores by frequency (daily, weekly, monthly): vacuuming, watering plants, paying bills, doing laundry, cleaning the oven.", "tier": "moderate"}
+{"prompt": "Summarize the key risks mentioned in this project brief: tight timeline, limited budget, and dependency on a third-party API that has had reliability issues.", "tier": "moderate"}
+{"prompt": "Summarize this customer interview note in one sentence: The user said onboarding took too long and they almost gave up before finding value in the product.", "tier": "moderate"}
+{"prompt": "Convert 5 kilometers to miles.", "tier": "simple"}
+{"prompt": "What is the capital of France?", "tier": "simple"}
+{"prompt": "Evaluate the argument that remote-first companies will outcompete in-office companies for talent over the next decade.", "tier": "complex"}
+{"prompt": "Give a short summary of this policy update: Starting next month, all employees will be required to complete an annual cybersecurity training module, with completion tracked through the HR portal.", "tier": "moderate"}
+{"prompt": "Write a short story opening that immediately establishes tension between two characters without stating what the conflict is directly.", "tier": "complex"}
+{"prompt": "Translate 'Nice to meet you' into Mandarin Chinese.", "tier": "simple"}
+{"prompt": "Explain the trade-offs between optimizing a system for read-heavy versus write-heavy workloads, with an example of when each choice makes sense.", "tier": "complex"}
+{"prompt": "A tank is filled by pipe A in 4 hours and drained by pipe B in 6 hours. If both pipes are open at the same time, explain step by step how long it takes to fill the tank.", "tier": "complex"}
+{"prompt": "Compare the nutritional profiles of an apple and a banana in a short table.", "tier": "moderate"}
+{"prompt": "Classify this support ticket by urgency (low, medium, high): 'The entire payment system is down and customers can't check out.'", "tier": "moderate"}
+{"prompt": "Compose a short poem from the perspective of the last leaf on a tree in winter.", "tier": "complex"}
+{"prompt": "Brainstorm a creative concept for a children's book about overcoming fear of the dark.", "tier": "complex"}
+{"prompt": "A store offers a 20% discount, then an additional 10% off the discounted price. Explain step by step whether this is the same as a flat 30% discount, and why or why not.", "tier": "complex"}
+{"prompt": "Translate 'Where is the train station?' into Spanish.", "tier": "simple"}
+{"prompt": "Discuss the ethical dilemma of an autonomous vehicle having to choose between two harmful outcomes in an unavoidable accident scenario.", "tier": "complex"}
+{"prompt": "Assess the risks and benefits of a company switching its entire infrastructure from on-premise servers to the cloud.", "tier": "complex"}
+{"prompt": "Classify this email thread as resolved or unresolved based on the last message: 'Thanks, that fixed it!'", "tier": "moderate"}
+{"prompt": "Extract the email address from this text: 'Hi, this is Diego Fernandez, you can reach me at diego.f@travel.com for any questions.'", "tier": "simple"}
+{"prompt": "Analyze the ethical considerations of using customer data to train a recommendation algorithm without explicit opt-in consent.", "tier": "complex"}
+{"prompt": "Organize this feedback into pros and cons columns: 'The UI is intuitive but the app crashes occasionally. Load times are fast, but the search feature is unreliable.'", "tier": "moderate"}
+{"prompt": "Summarize the following text in 3 bullet points: Remote work has changed how companies think about office space. Many organizations have reduced their real estate footprint, while others have redesigned offices to focus on collaboration rather than individual desks. Employee surveys show mixed opinions.", "tier": "moderate"}
+{"prompt": "Compare in-house development versus outsourcing for a small startup building its first product.", "tier": "moderate"}
+{"prompt": "Compose a piece of micro-fiction that ends with an unexpected twist, in under 100 words.", "tier": "complex"}
+{"prompt": "Summarize this product review in one sentence: 'I've been using this blender for three months now. It's powerful and easy to clean, though a bit loud. The price was higher than expected but the build quality justifies it.'", "tier": "moderate"}
+{"prompt": "What is 250 + 75?", "tier": "simple"}
+{"prompt": "Organize this list of symptoms by likely severity: mild headache, chest pain, minor bruise, difficulty breathing.", "tier": "moderate"}
+{"prompt": "Discuss both sides of the debate on whether standardized testing is a fair measure of student ability.", "tier": "complex"}
+{"prompt": "Compare and critically evaluate two hiring strategies: promoting from within versus hiring externally for a leadership role.", "tier": "complex"}
+{"prompt": "Categorize this list of expenses into categories like food, transport, and entertainment: taxi ride, movie ticket, groceries, bus pass, restaurant dinner.", "tier": "moderate"}
+{"prompt": "What is the chemical symbol for gold?", "tier": "simple"}
+{"prompt": "Outline a basic project plan based on this goal: launch a new company website within two months.", "tier": "moderate"}
+{"prompt": "Explain step by step how you would estimate the number of piano tuners in a large city, showing your reasoning at each stage.", "tier": "complex"}
+{"prompt": "Extract the email address from this text: 'Hi, this is Liam O'Brien, you can reach me at liam.obrien@finance.com for any questions.'", "tier": "simple"}
+{"prompt": "Structure this meeting agenda into timed sections: budget review, hiring update, product roadmap, open discussion.", "tier": "moderate"}
+{"prompt": "Classify the tone of this message as formal or informal: 'hey just checking if you got my last email, lmk when free'", "tier": "moderate"}
+{"prompt": "Extract the person's name and phone number from this text: 'Noah Bennett can be reached at 555-118-4402 regarding the delivery.'", "tier": "simple"}
+{"prompt": "Critique the reasoning in this statement and suggest a more balanced view: 'Failure is always the best teacher, so mistakes should never be avoided.'", "tier": "complex"}
+{"prompt": "Compare renting versus buying a home across cost, flexibility, and long-term value.", "tier": "moderate"}
+{"prompt": "Classify this article as an opinion piece or a factual news report.", "tier": "moderate"}
+{"prompt": "A company's revenue grows 20% in year one and declines 10% in year two from a starting point of $500,000. Walk through the calculation to find the revenue at the end of year two, explaining each step.", "tier": "complex"}
+{"prompt": "Explain step by step how you would diagnose why a web application's response times suddenly doubled after a routine deployment.", "tier": "complex"}
+{"prompt": "Classify the sentiment of this review as positive, negative, or neutral: 'The food was okay but the service was painfully slow.'", "tier": "moderate"}
+{"prompt": "Design an experiment to test whether a new onboarding flow improves user retention, including what metrics you would track.", "tier": "complex"}
+{"prompt": "Analyze the potential unintended consequences of a city implementing a congestion pricing policy for its downtown core.", "tier": "complex"}
+{"prompt": "Translate 'Thank you very much' into German.", "tier": "simple"}
+{"prompt": "Compare two marketing channels, email and social media, for a small local business.", "tier": "moderate"}
+{"prompt": "Compare two programming languages, Python and JavaScript, in terms of typical use cases.", "tier": "moderate"}
+{"prompt": "Summarize this research abstract in plain language: The study examined the effects of intermittent fasting on metabolic markers in 200 participants over 12 weeks, finding modest improvements in insulin sensitivity but no significant weight change.", "tier": "moderate"}
+{"prompt": "Give nuanced advice to someone deciding whether to confront a close friend about a pattern of unreliable behavior.", "tier": "complex"}
+{"prompt": "Reword this sentence to start with 'Because': 'The store closed early since it was a holiday.'", "tier": "simple"}
+{"prompt": "Evaluate the fairness of a company promoting based on tenure versus based on measurable performance.", "tier": "complex"}
+{"prompt": "Outline the steps of the onboarding process based on this description: New hires complete paperwork, then IT sets up equipment, then they meet their manager, then they attend orientation.", "tier": "moderate"}
+{"prompt": "Organize these tasks by priority (high, medium, low): fix production bug, update documentation, respond to customer email, plan next sprint.", "tier": "moderate"}
+{"prompt": "Write a haiku about autumn leaves.", "tier": "complex"}
+{"prompt": "Classify this book review's overall sentiment: 'The pacing dragged in the middle but the ending redeemed the whole book.'", "tier": "moderate"}
+{"prompt": "Who wrote the play 'Romeo and Juliet'?", "tier": "simple"}
+{"prompt": "Critique this business plan and suggest three specific improvements: 'We will sell handmade candles online, targeting all consumers, with no clear marketing budget and a plan to be profitable within one month.'", "tier": "complex"}
+{"prompt": "What is 23 multiplied by 3?", "tier": "simple"}
+{"prompt": "Evaluate whether it's ethical for a journalist to use a hidden recording to expose wrongdoing, weighing the public interest against consent.", "tier": "complex"}
+{"prompt": "Translate 'See you tomorrow' into Italian.", "tier": "simple"}
+{"prompt": "Extract the person's name and phone number from this text: 'Fatima Al-Sayed can be reached at 555-467-2201 regarding the delivery.'", "tier": "simple"}
+{"prompt": "Write a scene where a character discovers a hidden room in a house they've lived in for years.", "tier": "complex"}
+{"prompt": "Classify this job application excerpt as a strong fit or weak fit: 'I have five years of experience in the exact role you're hiring for and led a team of similar size.'", "tier": "moderate"}
+{"prompt": "What is the capital of Egypt?", "tier": "simple"}
+{"prompt": "Classify this review's sentiment: 'The hotel room was clean but smaller than the photos suggested, and the wifi kept disconnecting.'", "tier": "moderate"}
+{"prompt": "Given this ambiguous bug report \u2014 'the app is slow sometimes' \u2014 walk through how you would narrow down the root cause.", "tier": "complex"}
+{"prompt": "What is the capital of Poland?", "tier": "simple"}
+{"prompt": "Summarize this customer complaint in one sentence: 'I ordered a laptop two weeks ago and it still hasn't shipped. I've contacted support three times and gotten different answers each time.'", "tier": "moderate"}
+{"prompt": "Imagine a city built entirely underwater and describe a day in the life of one of its residents.", "tier": "complex"}
+{"prompt": "What year did the Berlin Wall fall?", "tier": "simple"}
+{"prompt": "Explain why a startup might choose to delay fundraising even when investor interest is high, weighing the trade-offs involved.", "tier": "complex"}
+{"prompt": "Compare these two smartphones based on battery life, camera quality, and price: Model A and Model B.", "tier": "moderate"}
+{"prompt": "Critique this argument for its logical weaknesses: 'Since most successful entrepreneurs dropped out of college, dropping out of college increases your chances of success.'", "tier": "complex"}
+{"prompt": "Explain step by step how to solve for x in the equation 3x + 7 = 2x - 5, showing your reasoning at each stage.", "tier": "complex"}
+{"prompt": "Summarize the results of this A/B test: Variant B increased click-through rate by 8% but decreased average session duration slightly.", "tier": "moderate"}
+{"prompt": "Extract the email address from this text: 'Hi, this is Maria Garcia, you can reach me at m.garcia@studio.net for any questions.'", "tier": "simple"}
+{"prompt": "What is 8 + 16?", "tier": "simple"}
+{"prompt": "Give me the dictionary definition of 'ubiquitous'.", "tier": "simple"}
+{"prompt": "Extract the person's name and phone number from this text: 'Grace Lin can be reached at 555-334-7789 regarding the delivery.'", "tier": "simple"}
+{"prompt": "Summarize this technical changelog: Version 2.3 introduces dark mode, fixes a memory leak in the export function, and improves load times by roughly 40% on large datasets.", "tier": "moderate"}
+{"prompt": "Summarize this travel itinerary in a few words: Day 1 arrival and city tour, Day 2 museum visits and local market, Day 3 day trip to the coast, Day 4 departure.", "tier": "moderate"}
+{"prompt": "Extract the email address from this text: 'Hi, this is Sarah Connor, you can reach me at sarah.connor@example.com for any questions.'", "tier": "simple"}
+{"prompt": "Summarize this project status update: The frontend is 90% complete, backend integration is on track for next week, but QA may slip a few days due to two newly discovered bugs.", "tier": "moderate"}
+{"prompt": "Organize this data into categories by department: list which of these tasks belong to Engineering, Sales, Marketing, or HR \u2014 hiring, code review, ad campaigns, quarterly report, onboarding, deployment.", "tier": "moderate"}
+{"prompt": "Write a short piece of flash fiction, no more than 150 words, about a character finding an old photograph.", "tier": "complex"}
+{"prompt": "Write a short dialogue between two old friends meeting unexpectedly after ten years apart.", "tier": "complex"}
+{"prompt": "What is 15 multiplied by 4?", "tier": "simple"}
+{"prompt": "Discuss the tension between individual privacy and public safety in the context of city-wide surveillance cameras.", "tier": "complex"}
+{"prompt": "Given a scenario where two team members disagree on technical direction, explain how you would facilitate a resolution and what factors would guide the final decision.", "tier": "complex"}
+{"prompt": "How many continents are there?", "tier": "simple"}
+{"prompt": "Rewrite this sentence in passive voice: 'The chef cooked the meal.'", "tier": "simple"}
+{"prompt": "Evaluate the pros and cons of a company going public versus staying privately funded.", "tier": "complex"}
+{"prompt": "What is 101 + 99?", "tier": "simple"}
+{"prompt": "Extract the person's name and phone number from this text: 'Anna Kowalski can be reached at 555-201-3344 regarding the delivery.'", "tier": "simple"}
+{"prompt": "Evaluate the trade-offs between building a feature in-house versus buying a third-party solution, considering cost, control, and time-to-market.", "tier": "complex"}
+{"prompt": "Summarize this restaurant review: 'The service was attentive without being intrusive, the pasta was cooked perfectly, but the dessert menu was disappointingly limited.'", "tier": "moderate"}
+{"prompt": "Summarize this paragraph in one sentence: The city council voted to approve a new public transit line that will connect the downtown core to the northern suburbs, with construction expected to begin next spring and take approximately eighteen months to complete.", "tier": "moderate"}
+{"prompt": "Organize this list of skills into technical and soft skills: communication, Python, teamwork, SQL, leadership, data visualization.", "tier": "moderate"}
+{"prompt": "What is 33 + 67?", "tier": "simple"}
+{"prompt": "Classify this email as spam or not spam: 'Congratulations! You've won a free cruise. Click here to claim your prize now!'", "tier": "moderate"}
+{"prompt": "Translate 'Good morning, how are you?' into French.", "tier": "simple"}
+{"prompt": "Classify this resume bullet point as a quantified achievement or a vague description: 'Responsible for improving team performance.'", "tier": "moderate"}
+{"prompt": "Structure this list of ingredients into a shopping list organized by grocery aisle: milk, chicken breast, spinach, olive oil, cereal, apples, cheddar cheese.", "tier": "moderate"}
+{"prompt": "What is the capital of Spain?", "tier": "simple"}
+{"prompt": "What is the plural of 'cactus'?", "tier": "simple"}
+{"prompt": "Recommend how a manager should handle a high-performing employee who consistently disregards team processes, weighing the trade-offs of each approach.", "tier": "complex"}
+{"prompt": "Summarize the key findings of this survey in two sentences: Of 500 respondents, 68% preferred hybrid work arrangements, 22% preferred fully remote, and 10% preferred fully in-office.", "tier": "moderate"}
+{"prompt": "Summarize the outcome of this sports match in one sentence: The home team trailed by ten points at halftime but rallied in the fourth quarter to win by three.", "tier": "moderate"}
+{"prompt": "What is 12 multiplied by 11?", "tier": "simple"}
+{"prompt": "Classify this customer feedback as a bug report, feature request, or general question: 'Could you add the ability to export reports as CSV files?'", "tier": "moderate"}
+{"prompt": "Give balanced advice on whether someone should prioritize paying off debt aggressively or investing for the future, given uncertain income stability.", "tier": "complex"}
+{"prompt": "A train leaves station A at 60 mph heading toward station B, 300 miles away. Another train leaves station B at the same time heading toward station A at 40 mph. Explain step by step when and where they will meet.", "tier": "complex"}
+{"prompt": "Summarize the plot of this short story premise in one sentence: A lighthouse keeper on a remote island discovers a message in a bottle that leads her to uncover a decades-old mystery.", "tier": "moderate"}
+{"prompt": "Critique this policy proposal and identify its unstated assumptions: 'We should ban all remote work to increase collaboration.'", "tier": "complex"}
+{"prompt": "Translate 'I am learning to cook' into Russian.", "tier": "simple"}
+{"prompt": "Evaluate whether a company's decision to lay off 10% of staff while announcing record profits the same quarter is ethically justifiable, considering multiple stakeholder perspectives.", "tier": "complex"}
+{"prompt": "Summarize this weather report: Temperatures will drop significantly overnight with a chance of frost in low-lying areas, clearing by midday tomorrow with light winds.", "tier": "moderate"}
+{"prompt": "Recommend how a small nonprofit should allocate a limited grant between direct services and long-term capacity building, and explain the trade-offs.", "tier": "complex"}
+{"prompt": "Invent a myth explaining why the moon changes shape throughout the month.", "tier": "complex"}
+{"prompt": "Translate 'The weather is nice today' into Dutch.", "tier": "simple"}
+{"prompt": "What is the capital of Japan?", "tier": "simple"}
+{"prompt": "What is the boiling point of water in Celsius?", "tier": "simple"}
+{"prompt": "Explain the reasoning behind choosing a relational database over a NoSQL database for a financial transactions system.", "tier": "complex"}
+{"prompt": "Classify these customer support messages by department: billing, technical, or shipping.", "tier": "moderate"}
+{"prompt": "Convert this sentence to uppercase: 'the meeting starts at nine'", "tier": "simple"}
+{"prompt": "Categorize these items into fruits and vegetables: apple, carrot, banana, spinach, orange, broccoli.", "tier": "moderate"}
+{"prompt": "Give a nuanced take on whether artificial intelligence should be allowed to make final decisions in medical diagnoses without physician review.", "tier": "complex"}
+{"prompt": "Write a monologue for a character who has just decided to leave their hometown for good.", "tier": "complex"}
+{"prompt": "Given conflicting stakeholder priorities \u2014 engineering wants to reduce technical debt, sales wants new features \u2014 propose a prioritization framework and justify it.", "tier": "complex"}
+{"prompt": "Write a short story about a chef who can taste people's memories in the food they cook.", "tier": "complex"}
+{"prompt": "Extract the person's name and phone number from this text: 'Tom Baker can be reached at 555-822-1190 regarding the delivery.'", "tier": "simple"}
+{"prompt": "Analyze the pros and cons of remote work versus in-office work for a growing startup, and justify a recommendation.", "tier": "complex"}
+{"prompt": "Walk through the reasoning for whether it's cheaper to buy a $1,200 laptop outright or finance it over 12 months at 8% annual interest.", "tier": "complex"}
+{"prompt": "Design a high-level system architecture for a ride-sharing app, explaining the reasoning behind each major component.", "tier": "complex"}
+{"prompt": "Structure this raw data into a table with columns for name, role, and start date: 'Jane, engineer, started March; Tom, designer, started June; Priya, manager, started January.'", "tier": "moderate"}
+{"prompt": "Copy the following text exactly: 'All systems operational.'", "tier": "simple"}
+{"prompt": "Reformat this list into bullet points: apples, bananas, oranges, grapes", "tier": "simple"}
+{"prompt": "What is 6 multiplied by 7?", "tier": "simple"}
+{"prompt": "What is the capital of Kenya?", "tier": "simple"}
+{"prompt": "What is the capital of Peru?", "tier": "simple"}
+{"prompt": "Classify this survey response as satisfied, neutral, or dissatisfied: 'It does what it's supposed to, nothing more, nothing less.'", "tier": "moderate"}
+{"prompt": "Analyze how rising interest rates might affect a small business that relies heavily on credit for inventory financing.", "tier": "complex"}
+{"prompt": "What is 500 + 125?", "tier": "simple"}
+{"prompt": "Summarize this incident report in two sentences: A server outage occurred at 2am due to a failed disk, detected by monitoring within 5 minutes, with service restored by 3:30am via failover.", "tier": "moderate"}
+{"prompt": "Three friends split a restaurant bill of $126 unevenly based on what they ordered. Explain a fair method to calculate each person's share.", "tier": "complex"}
+{"prompt": "Write a brief fictional diary entry from the perspective of a lighthouse keeper during a storm.", "tier": "complex"}
+{"prompt": "What is 9 multiplied by 9?", "tier": "simple"}
+{"prompt": "Critique this essay's argument and suggest how the author could strengthen their thesis: 'Social media is entirely responsible for declining attention spans in teenagers.'", "tier": "complex"}
+{"prompt": "Translate 'I would like a coffee, please' into Japanese.", "tier": "simple"}
+{"prompt": "Convert '03/15/2024' to ISO 8601 date format.", "tier": "simple"}
+{"prompt": "Change this list of numbers to a comma-separated string: 4, 8, 15, 16, 23", "tier": "simple"}
+{"prompt": "List the first five prime numbers.", "tier": "simple"}
+{"prompt": "Recommend whether a friend should accept a lower-paying job with better work-life balance or stay in a high-paying but stressful role, and justify your reasoning.", "tier": "complex"}
+{"prompt": "What is the capital of Germany?", "tier": "simple"}
+{"prompt": "What is 17 multiplied by 5?", "tier": "simple"}
+{"prompt": "Analyze why a previously successful product might be losing market share to a newer competitor, considering both product and market factors.", "tier": "complex"}

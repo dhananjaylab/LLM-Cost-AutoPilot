@@ -195,8 +195,6 @@ powershell -ExecutionPolicy Bypass -File scripts\obs-prometheus.ps1
 # Terminal 3 -- Grafana (after MSI install)
 powershell -ExecutionPolicy Bypass -File scripts\obs-grafana.ps1
 
-# Terminal 4 -- FastAPI app
-uvicorn llm_autopilot_api.main:app --reload --port 8000
 ```
 
 ### 2. Verify Each Service
