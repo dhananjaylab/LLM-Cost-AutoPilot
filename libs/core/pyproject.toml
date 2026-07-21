@@ -1,7 +1,7 @@
 [project]
 name = "llm-autopilot-core"
 version = "0.1.0"
-description = "Shared core library — config, DB, schemas, model registry, observability"
+description = "Shared core library — config, DB, schemas, model registry, observability, classifier"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.7.0",
@@ -23,6 +23,14 @@ dependencies = [
     "google-genai>=0.5.0",
     "groq>=0.11.0",
     "httpx>=0.27.0",
+    # ── Phase 2: complexity classifier ──────────────────────────────────────
+    # Moved here from Dockerfile.worker's ad hoc `uv pip install` — the API
+    # needs these for online classification (routing), not just the worker
+    # for offline retraining, and undeclared deps meant uv sync / mypy / CI
+    # couldn't see them at all.
+    "scikit-learn>=1.5.0",
+    "joblib>=1.4.0",
+    "numpy>=1.26.0",
 ]
 
 [build-system]
