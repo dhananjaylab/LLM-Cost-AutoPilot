@@ -2,7 +2,6 @@
 # ── Worker / Beat Dockerfile ──────────────────────────────────────────────────
 #
 # Same build pattern as Dockerfile.api.
-# Installs scikit-learn + sentence-transformers here (not needed in API).
 #
 # Build context: repo root
 
@@ -39,13 +38,12 @@ COPY libs/   ./libs/
 COPY apps/worker/ ./apps/worker/
 COPY apps/api/    ./apps/api/
 
-# Install worker package + ML deps not declared in pyproject (added in Phase 3)
-RUN uv sync --no-dev --package llm-autopilot-worker \
- && uv pip install \
-      scikit-learn>=1.5.0 \
-      sentence-transformers>=3.0.0 \
-      numpy>=1.26.0 \
-      joblib>=1.4.0
+# scikit-learn, joblib, numpy, sentence-transformers, celery, and redisvl
+# are all declared in libs/core/pyproject.toml as of Phase 3 (the API
+# process needs the classifier and semantic cache too, not just the
+# worker) — uv sync pulls them in transitively via the workspace
+# dependency, so no ad hoc `uv pip install` is needed here anymore.
+RUN uv sync --no-dev --package llm-autopilot-worker
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM python:${PYTHON_VERSION}-slim AS runtime
