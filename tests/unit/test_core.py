@@ -5,6 +5,7 @@ No external services required.
 
 from __future__ import annotations
 
+import importlib
 import sys
 import types
 
@@ -63,6 +64,38 @@ class TestSettings:
 
 
 # ── Registry tests ────────────────────────────────────────────────────────────
+
+
+def test_should_sample_for_verification_uses_secure_rng(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _SecureRandomStub:
+        def random(self) -> float:
+            return 0.0
+
+    cache_module = types.ModuleType("llm_autopilot_core.cache")
+    semantic_cache_module = types.ModuleType("llm_autopilot_core.cache.semantic_cache")
+    semantic_cache_module.get_semantic_cache = lambda: None
+    monkeypatch.setitem(sys.modules, "llm_autopilot_core.cache", cache_module)
+    monkeypatch.setitem(
+        sys.modules,
+        "llm_autopilot_core.cache.semantic_cache",
+        semantic_cache_module,
+    )
+
+    classifier_module = types.ModuleType("llm_autopilot_core.classifier")
+    classifier_module.get_classifier = lambda: None
+    monkeypatch.setitem(sys.modules, "llm_autopilot_core.classifier", classifier_module)
+
+    completions_module = importlib.import_module("llm_autopilot_core.completions")
+    monkeypatch.setattr(completions_module, "_rng", _SecureRandomStub(), raising=True)
+
+    settings = Settings(
+        database_url="postgresql+asyncpg://u:p@localhost/db",
+        _env_file=None,  # type: ignore[call-arg]
+    )
+
+    assert completions_module._should_sample_for_verification(0.5, settings) is True
 
 
 def test_configure_tracing_uses_instrumentor_instances(monkeypatch: pytest.MonkeyPatch) -> None:
