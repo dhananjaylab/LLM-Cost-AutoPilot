@@ -73,10 +73,10 @@ services:
 
   # ── Redis Stack (RediSearch for vector index) ────────────────────────────────
   redis:
-    image: redis/redis-stack:7.4.0-v1
+    image: redis:8.0-alpine
     ports:
       - "6379:6379"   # Redis
-      - "8001:8001"   # RedisInsight UI
+      # - "8001:8001"   # RedisInsight UI
     volumes:
       - redis_data:/data
     healthcheck:
