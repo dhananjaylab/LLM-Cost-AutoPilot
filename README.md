@@ -189,6 +189,8 @@ Open separate PowerShell windows and start the stack in dependency order:
 # Terminal 1 -- Tempo (start first)
 powershell -ExecutionPolicy Bypass -File scripts\obs-tempo.ps1
 
+.\scripts\obs-tempo.ps1
+
 # Terminal 2 -- Prometheus
 powershell -ExecutionPolicy Bypass -File scripts\obs-prometheus.ps1
 

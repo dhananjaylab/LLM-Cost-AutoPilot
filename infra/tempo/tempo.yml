@@ -4,11 +4,10 @@
 # OTLP gRPC receiver: localhost:4317
 # Query HTTP API + Grafana datasource: http://localhost:3200
 
-stream_over_http_enabled: true
-
 server:
   http_listen_port: 3200
   log_level: info
+  grpc_listen_port: 9095
 
 distributor:
   receivers:
@@ -18,6 +17,9 @@ distributor:
           endpoint: 0.0.0.0:4317
         http:
           endpoint: 0.0.0.0:4318
+          cors:
+            allowed_origins:
+              - "*"
 
 ingester:
   max_block_duration: 5m    # flush traces to storage every 5 min

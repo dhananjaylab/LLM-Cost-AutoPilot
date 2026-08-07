@@ -113,10 +113,14 @@ def _configure_tracing(app: FastAPI | None = None) -> None:
 
         SQLAlchemyInstrumentor().instrument()
         logger.info("tracing_configured", endpoint=settings.otlp_endpoint)
-    except ImportError:
+    except ImportError as e:
         logger.warning(
-            "tracing_deps_missing", hint="pip install opentelemetry-instrumentation-fastapi"
+            "tracing_deps_missing",
+            error=str(e),
+            hint="pip install opentelemetry-instrumentation-fastapi",
         )
+    except Exception as e:
+        logger.error("tracing_configuration_failed", error=str(e), error_type=type(e).__name__)
 
 
 # ── Application factory ───────────────────────────────────────────────────────
