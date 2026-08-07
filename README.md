@@ -233,6 +233,31 @@ curl.exe http://localhost:8000/metrics
 
 > Note: `http://localhost:3200/` can return `404 Not Found` even when Tempo is running correctly. Use `/metrics` or `/ready` to verify the service.
 
+### 4. Distributed Tracing (Tempo)
+
+Distributed tracing tracks incoming completion requests through the application layers (cache lookup, classification, routing, and database persistence).
+
+#### Enable Tracing
+Ensure tracing is enabled in your `.env` file:
+```env
+ENABLE_TRACING=true
+OTLP_ENDPOINT=http://localhost:4318
+```
+
+#### Query Traces via HTTP API
+* **Search all traces**:
+  ```bash
+  curl.exe "http://localhost:3200/api/search"
+  ```
+* **Search traces by service name** (note the required URL-encoded double quotes `%22` around values with spaces):
+  ```bash
+  curl.exe "http://localhost:3200/api/search?tags=service.name%3D%22LLM%20Cost%20Autopilot%22"
+  ```
+* **Retrieve a specific trace**:
+  ```bash
+  curl.exe "http://localhost:3200/api/traces/<trace-id>"
+  ```
+
 ## 🤖 Classifier Training
 
 The complexity classifier is the core component that determines how requests are routed to the appropriate LLM model. Training consists of two stages: generating the labeled training dataset and training the classifier model.
