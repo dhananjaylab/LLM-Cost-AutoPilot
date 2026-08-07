@@ -195,6 +195,8 @@ powershell -ExecutionPolicy Bypass -File scripts\obs-prometheus.ps1
 # Terminal 3 -- Grafana (after MSI install)
 powershell -ExecutionPolicy Bypass -File scripts\obs-grafana.ps1
 
+Stop-Service -Name Grafana -Force
+
 ```
 
 ### 2. Verify Each Service
