@@ -50,10 +50,10 @@ class OpenAIAdapter(BaseProviderAdapter):
     ) -> ProviderResponse:
         client = self._get_client()
         messages_param: list[ChatCompletionMessageParam] = [
-            {
+            {  # type: ignore[misc]
                 "role": m.role,
                 "content": m.content,
-            }  # type: ignore[typeddict-item]
+            }
             for m in messages
         ]
         try:

@@ -195,6 +195,8 @@ powershell -ExecutionPolicy Bypass -File scripts\obs-prometheus.ps1
 # Terminal 3 -- Grafana (after MSI install)
 powershell -ExecutionPolicy Bypass -File scripts\obs-grafana.ps1
 
+Stop-Service -Name Grafana -Force
+
 ```
 
 ### 2. Verify Each Service
@@ -228,6 +230,79 @@ curl.exe http://localhost:8000/metrics
 * **RedisInsight**: [http://localhost:8001](http://localhost:8001)
 
 > Note: `http://localhost:3200/` can return `404 Not Found` even when Tempo is running correctly. Use `/metrics` or `/ready` to verify the service.
+
+## 🤖 Classifier Training
+
+The complexity classifier is the core component that determines how requests are routed to the appropriate LLM model. Training consists of two stages: generating the labeled training dataset and training the classifier model.
+
+### Step 1: Generate Training Data
+
+Create a labeled dataset of example prompts with their assigned complexity tiers:
+
+```powershell
+uv run python scripts/generate_training_data.py
+```
+
+**Optional parameters:**
+* `--output`: Path to save the training dataset (default: `data/classifier/training_data.jsonl`)
+* `--seed`: Random seed for reproducibility (default: `42`)
+
+This generates a JSONL file with labeled examples across three complexity tiers:
+- **Tier 1 (Simple)**: Basic extraction, formatting, arithmetic, translation
+- **Tier 2 (Intermediate)**: Summarization, classification, structured analysis
+- **Tier 3 (Complex)**: Multi-step reasoning, creative tasks, nuanced judgment
+
+### Step 2: Train the Classifier Model
+
+Train the complexity classifier using the labeled dataset:
+
+```powershell
+uv run python scripts/train_classifier.py
+```
+
+**Optional parameters:**
+* `--data`: Path to the training dataset (default: `data/classifier/training_data.jsonl`)
+* `--model`: Model type to use (`logistic_regression` or `random_forest`, default: `logistic_regression`)
+* `--output`: Path to save the trained model artifact (default: `var/classifier/model.joblib`)
+* `--test-size`: Fraction of data to use for testing (default: `0.2`)
+* `--cv-folds`: Number of cross-validation folds (default: `5`)
+* `--seed`: Random seed for reproducibility (default: `42`)
+* `--record-db`: Also write and promote a `ClassifierVersion` row to the database (requires database connection)
+
+**Output:**
+The script generates two files:
+1. **`model.joblib`** — The serialized scikit-learn pipeline ready for inference
+2. **`model.meta.json`** — Metadata including accuracy, precision, recall, confusion matrix, and feature names
+
+The script validates that held-out test accuracy meets the 80% minimum threshold and provides detailed performance metrics:
+- Held-out test accuracy
+- Cross-validation accuracy (with standard deviation)
+- Macro precision and recall
+- Confusion matrix
+- Per-tier classification report
+
+**Example with Random Forest:**
+```powershell
+uv run python scripts/train_classifier.py --model random_forest --record-db
+```
+
+### Automatic Retraining (Scheduled)
+
+The system includes a scheduled retraining task that runs weekly on **Monday at 00:00 UTC** via Celery Beat:
+
+1. **`retrain_classifier`** — Weekly classifier retraining job
+   - Fetches accumulated verification failures since the last retrain
+   - Merges them with the original seed training dataset
+   - Re-fits the scikit-learn classifier
+   - Shadow-tests the new model against the current one on a held-out set
+   - Automatically promotes the new model if metrics improve
+
+To trigger the Celery worker for scheduled tasks:
+```powershell
+celery -A llm_autopilot_worker.main beat --loglevel DEBUG
+```
+
+Monitor retraining progress via the Flower dashboard at [http://localhost:5555](http://localhost:5555).
 
 ## ⚙️ Configuration Tuning (`.env`)
 

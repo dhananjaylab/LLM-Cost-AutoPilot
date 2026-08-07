@@ -24,13 +24,24 @@ dependencies = [
     "groq>=0.11.0",
     "httpx>=0.27.0",
     # ── Phase 2: complexity classifier ──────────────────────────────────────
-    # Moved here from Dockerfile.worker's ad hoc `uv pip install` — the API
-    # needs these for online classification (routing), not just the worker
-    # for offline retraining, and undeclared deps meant uv sync / mypy / CI
-    # couldn't see them at all.
+    # The API needs these for online classification (routing), not just the
+    # worker for offline retraining, and undeclared deps meant uv sync / mypy
+    # / CI couldn't see them at all.
     "scikit-learn>=1.5.0",
     "joblib>=1.4.0",
     "numpy>=1.26.0",
+    # ── Phase 3: semantic cache + task enqueueing ────────────────────────────
+    # sentence-transformers backs RedisVL's HFTextVectorizer for the semantic
+    # cache — moved here (not Dockerfile.worker's ad hoc install) for the
+    # same reason scikit-learn moved here in Phase 2: the API process needs
+    # it too, since cache lookups happen on every /v1/completions request,
+    # not just during offline retraining.
+    "sentence-transformers>=3.0.0",
+    "redisvl>=0.5.0",
+    # Celery client only (apps/worker declares the full [redis] extra +
+    # flower separately) — libs/core just needs enough to construct a
+    # producer and call send_task() by name; see tasks_client.py.
+    "celery>=5.4.0",
 ]
 
 [build-system]

@@ -8,7 +8,7 @@ Startup sequence (lifespan):
   4. Initialise Prometheus app_info metric
   5. Configure OpenTelemetry tracing (if enabled)
 
-POST /v1/completions  ← the main routing endpoint (Phase 3+)
+POST /v1/completions  ← the main routing endpoint (Phase 3)
 GET  /v1/models       ← list available models + pricing (Phase 3+)
 GET  /v1/stats        ← cost savings dashboard data (Phase 5+)
 PUT  /v1/routing-config ← live routing policy update (Phase 5+)
@@ -33,7 +33,7 @@ from llm_autopilot_core.metrics import initialise_info
 from llm_autopilot_core.registry import load_yaml_overrides
 from prometheus_client import REGISTRY, generate_latest
 
-from llm_autopilot_api.routers import health
+from llm_autopilot_api.routers import completions, health
 
 # Configure logging immediately on import so module-level loggers use the configured factory
 configure_logging()
@@ -183,7 +183,7 @@ def create_app() -> FastAPI:
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(health.router, prefix="/v1")
-    # Phase 3+: app.include_router(completions.router, prefix="/v1")
+    app.include_router(completions.router, prefix="/v1")
     # Phase 5+: app.include_router(models.router, prefix="/v1")
     # Phase 5+: app.include_router(stats.router, prefix="/v1")
 
