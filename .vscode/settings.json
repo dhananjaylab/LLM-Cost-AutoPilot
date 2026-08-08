@@ -1,0 +1,6 @@
+{
+    "sonarlint.connectedMode.project": {
+        "connectionId": "dhananjaylab",
+        "projectKey": "dhananjaylab_LLM-Cost-AutoPilot"
+    }
+}
