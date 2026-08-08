@@ -27,7 +27,7 @@ This task:
 from __future__ import annotations
 
 import asyncio
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 import structlog
@@ -297,7 +297,8 @@ def verify_response(
             status=result.status.value,
             quality_score=round(result.quality_score, 3),
         )
-        return cast(dict[str, Any], result.model_dump(mode="json"))
+        result_json: dict[str, Any] = result.model_dump(mode="json")
+        return result_json
 
     except Exception as exc:
         celery_tasks_total.labels(task_name="verify_response", status="failure").inc()
