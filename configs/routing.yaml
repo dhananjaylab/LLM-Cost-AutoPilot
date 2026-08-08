@@ -5,14 +5,6 @@
 # Update at runtime via PUT /v1/routing-config (Phase 5) — no redeploy needed.
 #
 # Key format: "<provider>/<model_id>" — must match MODEL_REGISTRY keys in registry.py
-#
-# Design choices:
-#   Tier 1 (simple)   → Groq Llama 8B or local Ollama  (near-zero cost)
-#   Tier 2 (moderate) → Gemini Flash or GPT-4o-mini     (cheap + capable)
-#   Tier 3 (complex)  → Claude Sonnet, GPT-4o, Gemini Pro (highest quality)
-#
-# The judge model is used for async verification (Phase 4).
-# It should be cheap-but-reliable, not necessarily the best model.
 
 version: "1"
 
@@ -21,32 +13,33 @@ routing:
     simple:
       description: "Reformatting, extraction, direct Q&A from provided context"
       models:
-        - groq/llama-3.1-8b-instant     # ~$0.05/1M tokens, 150ms avg
-        # - ollama/llama3.1               # $0.00, slower but always available
-        - groq/llama-3.3-70b-versatile   # fallback if 8B circuit trips
+        - groq/llama-3.1-8b-instant
+        - groq/llama-3.3-70b-versatile
       max_latency_ms: 3000
 
     moderate:
       description: "Summarisation, classification, structured analysis"
       models:
-        - google/gemini-3.5-flash        # ~$0.075/1M input, very fast
-        - groq/llama-3.1-8b-instant   # $0.59/1M, strong open-weight
-        - openai/gpt-4o-mini             # $0.15/1M input, reliable
-        - anthropic/claude-haiku-4-5  # $0.80/1M, high quality fallback
+        - google/gemini-3.5-flash
+        - groq/llama-3.1-8b-instant
+        - openai/gpt-4o-mini
+        - anthropic/claude-haiku-4-5
       max_latency_ms: 5000
 
     complex:
       description: "Multi-step reasoning, creative generation, nuanced judgement"
       models:
-        - anthropic/claude-sonnet-4-6  # best reasoning, 200K context
-        - openai/gpt-4o                          # strong baseline
-        - google/gemini-3.1-pro-preview           # 1M context window advantage
+        - anthropic/claude-sonnet-4-6
+        - openai/gpt-4o
+        - google/gemini-3.1-pro-preview
       max_latency_ms: 15000
 
-# Model used by the async verifier as a judge
-# Cheap + reliable wins here — we call this on every sampled verification
+# Model used by the async verifier as a judge (Phase 4).
+# Deliberately not used as MODERATE's primary target — but its fallback
+# chain does end on this same model, so verification/scoring.py's
+# is_self_judge() guard still checks this at runtime.
 verification:
-  judge_model: openai/gpt-4o-mini
+  judge_model: anthropic/claude-haiku-4-5
   judge_max_tokens: 512
 
 # The "hypothetical cost" baseline — every request compared against this

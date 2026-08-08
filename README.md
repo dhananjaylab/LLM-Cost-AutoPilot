@@ -189,6 +189,8 @@ Open separate PowerShell windows and start the stack in dependency order:
 # Terminal 1 -- Tempo (start first)
 powershell -ExecutionPolicy Bypass -File scripts\obs-tempo.ps1
 
+.\scripts\obs-tempo.ps1
+
 # Terminal 2 -- Prometheus
 powershell -ExecutionPolicy Bypass -File scripts\obs-prometheus.ps1
 
@@ -227,9 +229,34 @@ curl.exe http://localhost:8000/metrics
 * **Tempo OTLP HTTP ingest**: [http://localhost:4318](http://localhost:4318)
 * **Tempo health**: [http://localhost:3200/ready](http://localhost:3200/ready)
 * **Tempo metrics**: [http://localhost:3200/metrics](http://localhost:3200/metrics)
-* **RedisInsight**: [http://localhost:8001](http://localhost:8001)
+* **RedisInsight**: Local Desktop App (recommended) or [http://localhost:8001](http://localhost:8001) (if running via Docker Compose)
 
 > Note: `http://localhost:3200/` can return `404 Not Found` even when Tempo is running correctly. Use `/metrics` or `/ready` to verify the service.
+
+### 4. Distributed Tracing (Tempo)
+
+Distributed tracing tracks incoming completion requests through the application layers (cache lookup, classification, routing, and database persistence).
+
+#### Enable Tracing
+Ensure tracing is enabled in your `.env` file:
+```env
+ENABLE_TRACING=true
+OTLP_ENDPOINT=http://localhost:4318
+```
+
+#### Query Traces via HTTP API
+* **Search all traces**:
+  ```bash
+  curl.exe "http://localhost:3200/api/search"
+  ```
+* **Search traces by service name** (note the required URL-encoded double quotes `%22` around values with spaces):
+  ```bash
+  curl.exe "http://localhost:3200/api/search?tags=service.name%3D%22LLM%20Cost%20Autopilot%22"
+  ```
+* **Retrieve a specific trace**:
+  ```bash
+  curl.exe "http://localhost:3200/api/traces/<trace-id>"
+  ```
 
 ## 🤖 Classifier Training
 

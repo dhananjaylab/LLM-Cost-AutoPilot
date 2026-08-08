@@ -9,7 +9,7 @@ Design rules:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
@@ -141,7 +141,7 @@ class CompletionResponse(BaseModel):
     complexity_tier: ComplexityTier
     classifier_confidence: float = Field(ge=0.0, le=1.0)
     cache_hit: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -163,14 +163,30 @@ class RoutingDecision(BaseModel):
     reason: str
     alternatives_considered: list[str] = Field(default_factory=list)
     circuit_breaker_overrides: list[str] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ── Verification / Escalation ─────────────────────────────────────────────────
 
 
 class VerificationResult(BaseModel):
-    """Produced by the async Celery verification task."""
+    """
+    Produced by the async Celery verification task.
+
+    Phase 4 additions (feedback loop into the complexity classifier):
+      - escalated_content: the corrected output when escalation succeeds.
+        Populated either from a fresh rerun against the escalation target,
+        or — for pairwise-judged categories (creative/reasoning) — reused
+        directly from the comparison response generated during scoring,
+        since that call already happened against a top-tier model.
+      - feature_vector: the same 11-float vector classifier/features.py
+        would extract from the prompt, stored so the weekly retraining
+        job never needs the raw prompt text (which is never persisted —
+        see models/requests.py's prompt_hash design).
+      - corrected_tier: the tier this request *should* have been routed
+        to, i.e. the escalation target's tier. Only set when escalation
+        succeeded; this is the label retrain_classifier() trains against.
+    """
 
     request_id: UUID
     original_model_id: str
@@ -180,8 +196,11 @@ class VerificationResult(BaseModel):
     quality_gap: float | None = None  # None if not escalated
     escalation_reason: EscalationReason | None = None
     escalated_model_id: str | None = None
+    escalated_content: str | None = None
     cost_delta_usd: float | None = None  # escalation overhead
-    checked_at: datetime = Field(default_factory=datetime.utcnow)
+    feature_vector: list[float] | None = None
+    corrected_tier: ComplexityTier | None = None
+    checked_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ── Dashboard / Stats ─────────────────────────────────────────────────────────

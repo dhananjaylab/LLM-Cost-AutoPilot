@@ -99,10 +99,13 @@ def _configure_tracing(app: FastAPI | None = None) -> None:
                 "deployment.environment": settings.environment,
             }
         )
+        # OTLP/HTTP exporter requires the full URL with path when passed to the constructor
+        otlp_endpoint = settings.otlp_endpoint
+        if otlp_endpoint and not otlp_endpoint.endswith("/v1/traces"):
+            otlp_endpoint = f"{otlp_endpoint.rstrip('/')}/v1/traces"
+
         provider = TracerProvider(resource=resource)
-        provider.add_span_processor(
-            BatchSpanProcessor(OTLPSpanExporter(endpoint=settings.otlp_endpoint))
-        )
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint)))
         trace.set_tracer_provider(provider)
 
         fastapi_instrumentor = FastAPIInstrumentor()
@@ -113,10 +116,14 @@ def _configure_tracing(app: FastAPI | None = None) -> None:
 
         SQLAlchemyInstrumentor().instrument()
         logger.info("tracing_configured", endpoint=settings.otlp_endpoint)
-    except ImportError:
+    except ImportError as e:
         logger.warning(
-            "tracing_deps_missing", hint="pip install opentelemetry-instrumentation-fastapi"
+            "tracing_deps_missing",
+            error=str(e),
+            hint="pip install opentelemetry-instrumentation-fastapi",
         )
+    except Exception as e:
+        logger.error("tracing_configuration_failed", error=str(e), error_type=type(e).__name__)
 
 
 # ── Application factory ───────────────────────────────────────────────────────
