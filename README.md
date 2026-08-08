@@ -229,7 +229,7 @@ curl.exe http://localhost:8000/metrics
 * **Tempo OTLP HTTP ingest**: [http://localhost:4318](http://localhost:4318)
 * **Tempo health**: [http://localhost:3200/ready](http://localhost:3200/ready)
 * **Tempo metrics**: [http://localhost:3200/metrics](http://localhost:3200/metrics)
-* **RedisInsight**: [http://localhost:8001](http://localhost:8001)
+* **RedisInsight**: Local Desktop App (recommended) or [http://localhost:8001](http://localhost:8001) (if running via Docker Compose)
 
 > Note: `http://localhost:3200/` can return `404 Not Found` even when Tempo is running correctly. Use `/metrics` or `/ready` to verify the service.
 
