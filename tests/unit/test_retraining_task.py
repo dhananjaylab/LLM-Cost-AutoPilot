@@ -111,8 +111,8 @@ def _baseline_model() -> ModelConfig:
         provider=Provider.OPENAI,
         model_id="gpt-4o",
         display_name="GPT-4o",
-        cost_per_input_token=0.000_005,
-        cost_per_output_token=0.000_015,
+        cost_per_input_token=0.00005,  # $0.00005 per input token
+        cost_per_output_token=0.0002,  # $0.0002 per output token
         avg_latency_ms=1_800,
         quality_tier=QualityTier.HIGH,
         context_window=128_000,

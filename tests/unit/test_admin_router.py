@@ -98,7 +98,7 @@ class TestPutRoutingConfigAuth:
     async def test_returns_503_when_admin_key_not_configured(
         self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.delenv("ADMIN_API_KEY", raising=False)
+        monkeypatch.setenv("ADMIN_API_KEY", "")
         get_settings.cache_clear()
         resp = await client.put("/v1/admin/routing-config", json=_VALID_PAYLOAD)
         assert resp.status_code == 503

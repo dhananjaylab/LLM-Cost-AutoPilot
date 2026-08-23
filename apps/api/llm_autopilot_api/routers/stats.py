@@ -61,22 +61,18 @@ def _weighted_avg(rows: list[CostAggregate], field: str) -> float:
     },
 )
 async def get_stats(
+    session: Annotated[AsyncSession, Depends(get_session)],
     start_date: Annotated[
         date | None,
-        Query(
-            default=None,
-            description="Inclusive range start (UTC date). Defaults to 7 days before end_date.",
-        ),
-    ],
+        Query(description="Inclusive range start (UTC date). Defaults to 7 days before end_date."),
+    ] = None,
     end_date: Annotated[
         date | None,
         Query(
-            default=None,
             description="Inclusive range end (UTC date). Defaults to yesterday; clamped to "
-            "yesterday even if a later date is supplied, since today isn't aggregated yet.",
+            "yesterday even if a later date is supplied, since today isn't aggregated yet."
         ),
-    ],
-    session: Annotated[AsyncSession, Depends(get_session)],
+    ] = None,
 ) -> CostStats:
     yesterday = datetime.now(UTC).date() - timedelta(days=1)
     resolved_end = min(end_date, yesterday) if end_date is not None else yesterday

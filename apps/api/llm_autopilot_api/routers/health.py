@@ -98,7 +98,7 @@ async def readiness() -> ReadinessResponse:
     if not all_ok:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=response.model_dump(),
+            detail=response.model_dump(mode="json"),
         )
 
     return response
