@@ -25,6 +25,7 @@ from llm_autopilot_core.database import managed_session
 from llm_autopilot_core.models import CostAggregate, Request, Response, Verification
 from llm_autopilot_core.schemas import ComplexityTier, Provider, VerificationStatus
 from llm_autopilot_worker.tasks.retraining import _aggregate_daily_costs_async
+from sqlalchemy import delete
 
 
 @pytest.fixture
@@ -43,6 +44,19 @@ async def _seed_day(target_date: date) -> None:
     at = datetime.combine(target_date, datetime.min.time(), tzinfo=UTC) + timedelta(hours=10)
 
     async with managed_session() as session:
+        await session.execute(delete(CostAggregate).where(CostAggregate.date == target_date))
+        await session.execute(
+            delete(Request).where(
+                Request.prompt_hash.in_(["hash-hit", "hash-miss"]),
+                Request.created_at
+                >= datetime.combine(target_date, datetime.min.time(), tzinfo=UTC),
+                Request.created_at
+                < datetime.combine(
+                    target_date + timedelta(days=1), datetime.min.time(), tzinfo=UTC
+                ),
+            )
+        )
+
         hit_request_id = uuid.uuid4()
         session.add(
             Request(
