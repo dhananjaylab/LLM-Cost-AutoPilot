@@ -5,23 +5,30 @@ Startup sequence (lifespan):
   1. Configure structured logging
   2. Apply YAML runtime overrides to model registry
   3. Verify database connection
-  4. Initialise Prometheus app_info metric
-  5. Configure OpenTelemetry tracing (if enabled)
+  4. Load the routing config from Postgres (bootstrapping from
+     configs/routing.yaml on the very first-ever run) and start a
+     periodic background refresh so PUT /v1/admin/routing-config changes
+     made on another replica are picked up within
+     settings.routing_config_cache_ttl_seconds — see routing.py
+  5. Initialise Prometheus app_info metric
+  6. Configure OpenTelemetry tracing (if enabled)
 
-POST /v1/completions  ← the main routing endpoint (Phase 3)
-GET  /v1/models       ← list available models + pricing (Phase 3+)
-GET  /v1/stats        ← cost savings dashboard data (Phase 5+)
-PUT  /v1/routing-config ← live routing policy update (Phase 5+)
-GET  /v1/healthz      ← liveness probe
-GET  /v1/readyz       ← readiness probe (checks DB + Redis)
-GET  /metrics         ← Prometheus scrape endpoint
+POST /v1/completions              ← the main routing endpoint (Phase 3)
+GET  /v1/models                   ← list available models + pricing (Phase 5)
+GET  /v1/stats                    ← cost savings dashboard data (Phase 5)
+GET  /v1/admin/routing-config     ← current routing config (Phase 5)
+PUT  /v1/admin/routing-config     ← live routing policy update (Phase 5)
+GET  /v1/healthz                  ← liveness probe
+GET  /v1/readyz                   ← readiness probe (checks DB + Redis)
+GET  /metrics                     ← Prometheus scrape endpoint
 """
 
 from __future__ import annotations
 
+import asyncio
 import time
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 import structlog
 from fastapi import FastAPI, Request, Response
@@ -31,9 +38,10 @@ from llm_autopilot_core.database import check_connection, dispose_engine
 from llm_autopilot_core.logging import configure_logging
 from llm_autopilot_core.metrics import initialise_info
 from llm_autopilot_core.registry import load_yaml_overrides
+from llm_autopilot_core.routing import refresh_routing_config_from_db
 from prometheus_client import REGISTRY, generate_latest
 
-from llm_autopilot_api.routers import completions, health
+from llm_autopilot_api.routers import admin, completions, health, models, stats
 
 # Configure logging immediately on import so module-level loggers use the configured factory
 configure_logging()
@@ -43,6 +51,24 @@ settings = get_settings()
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
+
+
+async def _routing_config_refresh_loop() -> None:
+    """
+    Background task: periodically re-reads the promoted routing config
+    from Postgres so this replica picks up PUT /v1/admin/routing-config
+    changes made on a *different* replica. The replica that served the
+    PUT already has the fresh config (persist_routing_config updates the
+    process-local cache directly), so this loop's only job is
+    cross-replica propagation, bounded by
+    settings.routing_config_cache_ttl_seconds.
+    """
+    while True:
+        await asyncio.sleep(settings.routing_config_cache_ttl_seconds)
+        try:
+            await refresh_routing_config_from_db()
+        except Exception as exc:  # noqa: BLE001 — a transient DB blip must not kill the loop
+            logger.warning("routing_config_refresh_failed", error=str(exc))
 
 
 @asynccontextmanager
@@ -67,6 +93,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         raise RuntimeError("Cannot connect to PostgreSQL — refusing to start")
     logger.info("database_connected")
 
+    # Load the routing config before accepting traffic — fails fast the
+    # same way the DB connectivity check above does, rather than serving
+    # requests against an empty/stale cache. Bootstraps from
+    # configs/routing.yaml into Postgres on the very first-ever run.
+    await refresh_routing_config_from_db()
+    logger.info("routing_config_loaded")
+    refresh_task = asyncio.create_task(_routing_config_refresh_loop())
+
     initialise_info()
 
     # ── OpenTelemetry tracing (optional) ──────────────────────────────────────
@@ -76,6 +110,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
+    refresh_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await refresh_task
     logger.info("shutdown_initiated")
     await dispose_engine()
     logger.info("shutdown_complete")
@@ -191,8 +228,9 @@ def create_app() -> FastAPI:
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(health.router, prefix="/v1")
     app.include_router(completions.router, prefix="/v1")
-    # Phase 5+: app.include_router(models.router, prefix="/v1")
-    # Phase 5+: app.include_router(stats.router, prefix="/v1")
+    app.include_router(models.router, prefix="/v1")
+    app.include_router(stats.router, prefix="/v1")
+    app.include_router(admin.router, prefix="/v1")
 
     return app
 

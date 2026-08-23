@@ -49,7 +49,7 @@ def _weighted_avg(rows: list[CostAggregate], field: str) -> float:
     if total_requests == 0:
         return 0.0
     weighted_sum = sum(cast(float, getattr(r, field)) * r.total_requests for r in rows)
-    return cast(float, weighted_sum / total_requests)
+    return float(weighted_sum / total_requests)
 
 
 @router.get(

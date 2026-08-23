@@ -23,6 +23,7 @@ from llm_autopilot_core.models import (  # noqa: F401
     CostAggregate,
     Request,
     Response,
+    RoutingConfigVersion,
     RoutingDecision,
     Verification,
 )

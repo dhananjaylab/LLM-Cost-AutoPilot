@@ -12,8 +12,6 @@ and GET /v1/stats.
 
 from __future__ import annotations
 
-from typing import cast
-
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from llm_autopilot_core.routing import (
@@ -49,7 +47,8 @@ async def get_current_routing_config() -> RoutingConfig:
 async def get_routing_config_history(
     limit: int = Query(default=20, ge=1, le=100),
 ) -> list[RoutingConfigVersionSummary]:
-    return cast(list[RoutingConfigVersionSummary], await list_routing_config_versions(limit=limit))
+    versions: list[RoutingConfigVersionSummary] = await list_routing_config_versions(limit=limit)
+    return versions
 
 
 @router.put(
