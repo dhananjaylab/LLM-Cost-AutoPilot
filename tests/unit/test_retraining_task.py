@@ -7,7 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
+from llm_autopilot_core.schemas import ModelConfig, Provider, QualityTier
 from llm_autopilot_worker.tasks import retraining
+from llm_autopilot_worker.tasks.retraining import _compute_daily_aggregate, _DailyRollupInputs
 
 
 def _write_seed_dataset(path: Path) -> None:
@@ -99,3 +101,82 @@ class TestRetrainClassifierAsync:
         result = retraining.retrain_classifier()
 
         assert result["status"] == "skipped"
+
+
+# ── Daily cost aggregation (Phase 5) ─────────────────────────────────────────────
+
+
+def _baseline_model() -> ModelConfig:
+    return ModelConfig(
+        provider=Provider.OPENAI,
+        model_id="gpt-4o",
+        display_name="GPT-4o",
+        cost_per_input_token=0.000_005,
+        cost_per_output_token=0.000_015,
+        avg_latency_ms=1_800,
+        quality_tier=QualityTier.HIGH,
+        context_window=128_000,
+        max_output_tokens=4_096,
+    )
+
+
+class TestComputeDailyAggregate:
+    def test_basic_rollup_with_baseline(self) -> None:
+        inputs = _DailyRollupInputs(
+            total_requests=10,
+            cache_hits=3,
+            response_rows=[
+                (0.01, 100, 50, "simple", "groq"),
+                (0.02, 200, 100, "moderate", "openai"),
+            ],
+            verification_rows=[("passed", 0.9), ("escalated", 0.3)],
+        )
+        result = _compute_daily_aggregate(inputs, baseline_model=_baseline_model())
+
+        assert result["cache_hit_rate"] == pytest.approx(30.0)
+        assert result["escalation_rate"] == pytest.approx(10.0)
+        assert result["avg_quality_score"] == pytest.approx(0.6)
+        assert result["requests_by_tier"] == {"simple": 1, "moderate": 1}
+        assert result["requests_by_provider"] == {"groq": 1, "openai": 1}
+        assert result["total_cost_usd"] == pytest.approx(0.03)
+        # baseline (gpt-4o) is pricier than what was actually spent
+        assert result["hypothetical_cost_usd"] > result["total_cost_usd"]
+        assert result["cost_savings_usd"] == pytest.approx(
+            result["hypothetical_cost_usd"] - result["total_cost_usd"]
+        )
+
+    def test_zero_requests_does_not_divide_by_zero(self) -> None:
+        result = _compute_daily_aggregate(
+            _DailyRollupInputs(
+                total_requests=0, cache_hits=0, response_rows=[], verification_rows=[]
+            ),
+            baseline_model=None,
+        )
+        assert result["cache_hit_rate"] == 0.0
+        assert result["escalation_rate"] == 0.0
+        assert result["avg_quality_score"] == 0.0
+        assert result["hypothetical_cost_usd"] == 0.0
+        assert result["cost_savings_usd"] == 0.0
+
+    def test_no_baseline_model_gives_zero_hypothetical_cost(self) -> None:
+        inputs = _DailyRollupInputs(
+            total_requests=1,
+            cache_hits=0,
+            response_rows=[(0.01, 100, 50, "simple", "groq")],
+            verification_rows=[],
+        )
+        result = _compute_daily_aggregate(inputs, baseline_model=None)
+        assert result["hypothetical_cost_usd"] == 0.0
+        assert result["cost_savings_usd"] == 0.0  # can't be negative from a missing baseline
+
+    def test_no_verifications_gives_zero_avg_quality_and_escalation(self) -> None:
+        inputs = _DailyRollupInputs(
+            total_requests=5,
+            cache_hits=1,
+            response_rows=[(0.01, 100, 50, "simple", "groq")] * 5,
+            verification_rows=[],
+        )
+        result = _compute_daily_aggregate(inputs, baseline_model=_baseline_model())
+        assert result["avg_quality_score"] == 0.0
+        assert result["escalation_rate"] == 0.0
+        assert result["cache_hit_rate"] == pytest.approx(20.0)
