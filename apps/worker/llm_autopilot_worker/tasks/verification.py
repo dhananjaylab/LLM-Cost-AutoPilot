@@ -22,6 +22,20 @@ This task:
   4. Persists a Verification row, always including the prompt's feature
      vector (never the raw prompt) and — on successful escalation — the
      corrected_tier, which is what retrain_classifier() trains against.
+  5. (Phase 5) On successful escalation, also overwrites the semantic
+     cache entry the original response populated with the corrected
+     answer — see _write_back_escalated_response() below — so a cache
+     hit on the same/similar prompt doesn't keep serving the answer the
+     verifier just found wrong. Best-effort: a cache failure here never
+     fails the task, since the escalation itself already succeeded and
+     is already durably recorded in the Verification row.
+
+Reads the routing config fresh from Postgres on every run
+(refresh_routing_config_from_db()) rather than through the API's
+process-local cache — this task runs far less often than a request, so
+the extra DB round trip is cheap, and it means a routing-config change
+made via PUT /v1/admin/routing-config is visible here immediately rather
+than waiting out the API's refresh TTL.
 """
 
 from __future__ import annotations
@@ -32,6 +46,7 @@ from uuid import UUID
 
 import structlog
 from celery import Task
+from llm_autopilot_core.cache import get_semantic_cache
 from llm_autopilot_core.classifier.features import feature_vector
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.database import managed_session
@@ -49,7 +64,7 @@ from llm_autopilot_core.providers.dispatcher import send_request
 from llm_autopilot_core.registry import get_model
 from llm_autopilot_core.routing import (
     RoutingConfigError,
-    get_routing_config,
+    refresh_routing_config_from_db,
     select_model_for_tier,
 )
 from llm_autopilot_core.schemas import (
@@ -91,6 +106,55 @@ async def _persist_verification(result: VerificationResult) -> None:
         )
 
 
+async def _write_back_escalated_response(
+    *,
+    cache_key: str,
+    escalated_content: str,
+    escalated_model_id: str | None,
+    escalated_provider: Provider | None,
+    classifier_confidence: float,
+    request_id: str,
+) -> None:
+    """
+    Best-effort: overwrite the semantic-cache entry this request
+    originally populated with the escalated (corrected) response, in
+    place, so future callers with the same or a similar prompt get the
+    fixed answer instead of the one the verifier just found wrong.
+
+    Uses RedisVL's aupdate(), which updates fields on an existing entry
+    rather than creating a second, competing one the way a second
+    astore() call would — important since acheck() has no defined
+    tie-break between two entries that both match closely. Passing a
+    fresh `metadata` dict replaces the whole field rather than merging
+    into it, so this rebuilds every key completions._response_from_cache_hit()
+    reads; input/output token counts are omitted (the escalated response
+    came from a different model, and neither escalation path here tracks
+    its own token counts) — completions.py already defaults those to 0
+    on read, so this only affects cosmetic token accounting on a future
+    cache hit, not correctness of the served content.
+
+    Never raises — a cache write-back failure shouldn't turn an
+    already-successful, already-persisted escalation into a task
+    failure/retry.
+    """
+    try:
+        cache = get_semantic_cache()
+        await cache.aupdate(
+            cache_key,
+            response=escalated_content,
+            metadata={
+                "model_id": escalated_model_id or "unknown",
+                "provider": escalated_provider.value if escalated_provider else "unknown",
+                "complexity_tier": ComplexityTier.COMPLEX.value,
+                "classifier_confidence": classifier_confidence,
+                "corrected_by_escalation": True,
+            },
+        )
+        logger.info("cache_writeback_succeeded", request_id=request_id, cache_key=cache_key)
+    except Exception as exc:  # noqa: BLE001 — best-effort, escalation already succeeded
+        logger.warning("cache_writeback_failed", request_id=request_id, error=str(exc))
+
+
 async def _verify_response_async(
     *,
     request_id: str,
@@ -100,9 +164,10 @@ async def _verify_response_async(
     provider: str,
     complexity_tier: str,
     classifier_confidence: float,
+    cache_key: str | None = None,
 ) -> VerificationResult:
     settings = get_settings()
-    routing_config = get_routing_config()
+    routing_config = await refresh_routing_config_from_db()
 
     judge_config = get_model(routing_config.verification.judge_model)
     if judge_config is None:
@@ -176,6 +241,7 @@ async def _verify_response_async(
 
     escalated_content: str | None
     escalated_model_id: str | None
+    escalated_provider: Provider | None
     escalation_cost: float
 
     if scoring_result.escalation_candidate_content is not None:
@@ -183,6 +249,7 @@ async def _verify_response_async(
         # response — reuse it rather than pay for a second rerun.
         escalated_content = scoring_result.escalation_candidate_content
         escalated_model_id = scoring_result.escalation_candidate_model_id
+        escalated_provider = scoring_result.escalation_candidate_provider
         escalation_cost = scoring_result.escalation_candidate_cost_usd
     else:
         try:
@@ -201,6 +268,7 @@ async def _verify_response_async(
             )
             escalated_content = escalation_response.content
             escalated_model_id = escalation_model_config.model_id
+            escalated_provider = escalation_model_config.provider
             escalation_cost = escalation_response.cost_usd
         except (TimeoutError, ProviderError, RoutingConfigError) as exc:
             logger.warning("escalation_rerun_failed", request_id=request_id, error=str(exc))
@@ -239,6 +307,17 @@ async def _verify_response_async(
         escalated_model=escalated_model_id or "unknown",
         reason=EscalationReason.QUALITY_GAP.value,
     ).inc()
+
+    if cache_key is not None and escalated_content is not None:
+        await _write_back_escalated_response(
+            cache_key=cache_key,
+            escalated_content=escalated_content,
+            escalated_model_id=escalated_model_id,
+            escalated_provider=escalated_provider,
+            classifier_confidence=classifier_confidence,
+            request_id=request_id,
+        )
+
     return result
 
 
@@ -261,6 +340,7 @@ def verify_response(
     input_tokens: int,
     output_tokens: int,
     cost_usd: float,
+    cache_key: str | None = None,
 ) -> dict[str, Any]:
     """
     Async quality verification for a single completed request.
@@ -270,6 +350,12 @@ def verify_response(
     on the signature as an audit-trail hook for future cost-delta
     reporting (e.g. comparing original vs. escalation cost) without
     another schema change.
+
+    `cache_key` (Phase 5) is the semantic-cache entry the original
+    response populated, if any — enqueue_verify_response() only ever
+    passes one when the original completion was a cache miss (a cache
+    hit isn't sampled for verification at all), so it's always present
+    when there's actually something to write a correction back to.
     """
     log = logger.bind(
         request_id=request_id,
@@ -289,6 +375,7 @@ def verify_response(
                 provider=provider,
                 complexity_tier=complexity_tier,
                 classifier_confidence=classifier_confidence,
+                cache_key=cache_key,
             )
         )
         celery_tasks_total.labels(task_name="verify_response", status="success").inc()
