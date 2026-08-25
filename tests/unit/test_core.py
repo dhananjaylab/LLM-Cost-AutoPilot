@@ -261,7 +261,7 @@ class TestModelRegistry:
         assert abs(cost - expected) < 1e-10
 
     def test_groq_cheaper_than_openai_for_same_tier(self) -> None:
-        groq_model = get_model("groq/llama-3.1-8b-instant")
+        groq_model = get_model("meta-llama/llama-prompt-guard-2-22m")
         openai_model = get_model("openai/gpt-4o-mini")
         assert groq_model is not None
         assert openai_model is not None

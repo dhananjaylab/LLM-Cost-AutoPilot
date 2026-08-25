@@ -26,7 +26,7 @@ def _routing_config() -> RoutingConfig:
         version="1",
         tiers={
             ComplexityTier.SIMPLE: TierRoute(
-                description="", models=["groq/llama-3.1-8b-instant"], max_latency_ms=3000
+                description="", models=["meta-llama/llama-prompt-guard-2-22m"], max_latency_ms=3000
             ),
             ComplexityTier.MODERATE: TierRoute(
                 description="", models=["openai/gpt-4o-mini"], max_latency_ms=5000

@@ -27,7 +27,7 @@ _VALID_PAYLOAD = {
     "tiers": {
         "simple": {
             "description": "integration test tier",
-            "models": ["groq/llama-3.1-8b-instant"],
+            "models": ["meta-llama/llama-prompt-guard-2-22m"],
             "max_latency_ms": 3000,
         },
         "moderate": {

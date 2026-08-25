@@ -47,7 +47,7 @@ def _valid_config() -> RoutingConfig:
         version="1",
         tiers={
             "simple": TierRoute(  # type: ignore[arg-type]
-                description="", models=["groq/llama-3.1-8b-instant"], max_latency_ms=3000
+                description="", models=["meta-llama/llama-prompt-guard-2-22m"], max_latency_ms=3000
             ),
         },
         verification=VerificationRoutingConfig(
