@@ -10,14 +10,19 @@ retrain_classifier     — weekly, Monday 00:00 UTC
     recorded (promoted or not) for audit history.
 
 aggregate_daily_costs  — daily, 01:00 UTC
-    Phase 5 placeholder — unchanged.
+    Phase 5: rolls up the previous UTC day's requests/responses/verifications
+    into a single cost_aggregates row (upserted, so reruns for the same day
+    stay idempotent) — see GET /v1/stats (apps/api/.../routers/stats.py),
+    which reads only from this table rather than aggregating the raw tables
+    live on every call.
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -31,9 +36,19 @@ from llm_autopilot_core.classifier.training import TrainingResult, train_and_eva
 from llm_autopilot_core.config import get_settings
 from llm_autopilot_core.database import managed_session
 from llm_autopilot_core.metrics import celery_tasks_total
-from llm_autopilot_core.models import ClassifierVersion, Verification
+from llm_autopilot_core.models import (
+    ClassifierVersion,
+    CostAggregate,
+    Request,
+    Response,
+    Verification,
+)
+from llm_autopilot_core.registry import compute_cost, get_model
+from llm_autopilot_core.routing import get_routing_config
+from llm_autopilot_core.schemas import ModelConfig, VerificationStatus
 from sklearn.model_selection import train_test_split
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from llm_autopilot_worker.main import celery_app
 
@@ -237,37 +252,170 @@ def retrain_classifier() -> dict[str, Any]:
         raise
 
 
+# ── Daily cost aggregation (Phase 5) ─────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class _DailyRollupInputs:
+    """Raw per-day rows, already unwrapped from SQLAlchemy Row objects into
+    plain Python values, so _compute_daily_aggregate() below can be unit
+    tested without a database."""
+
+    total_requests: int
+    cache_hits: int
+    # (cost_usd, input_tokens, output_tokens, complexity_tier, provider)
+    response_rows: list[tuple[float, int, int, str, str]]
+    # (status, quality_score)
+    verification_rows: list[tuple[str, float]]
+
+
+def _compute_daily_aggregate(
+    inputs: _DailyRollupInputs, *, baseline_model: ModelConfig | None
+) -> dict[str, Any]:
+    """
+    Pure rollup logic — no I/O. Mirrors the Prometheus recording rules'
+    conventions (infra/prometheus/rules/recording_rules.yml) so this
+    table and the live dashboards agree on what "escalation rate" and
+    "cache hit rate" mean: a percentage of *all requests* that day, not
+    just the sampled/verified subset.
+    """
+    total_cost_usd = sum(row[0] for row in inputs.response_rows)
+    hypothetical_cost_usd = (
+        sum(compute_cost(baseline_model, row[1], row[2]) for row in inputs.response_rows)
+        if baseline_model is not None
+        else 0.0
+    )
+    cost_savings_usd = max(0.0, hypothetical_cost_usd - total_cost_usd)
+
+    requests_by_tier: dict[str, int] = {}
+    requests_by_provider: dict[str, int] = {}
+    for _cost, _in_tok, _out_tok, tier, provider in inputs.response_rows:
+        requests_by_tier[tier] = requests_by_tier.get(tier, 0) + 1
+        requests_by_provider[provider] = requests_by_provider.get(provider, 0) + 1
+
+    escalated_count = sum(
+        1
+        for status, _score in inputs.verification_rows
+        if status == VerificationStatus.ESCALATED.value
+    )
+    quality_scores = [score for _status, score in inputs.verification_rows]
+
+    total_requests = inputs.total_requests
+    cache_hit_rate = (inputs.cache_hits / total_requests * 100) if total_requests else 0.0
+    escalation_rate = (escalated_count / total_requests * 100) if total_requests else 0.0
+    avg_quality_score = sum(quality_scores) / len(quality_scores) if quality_scores else 0.0
+
+    return {
+        "total_requests": total_requests,
+        "total_cost_usd": total_cost_usd,
+        "hypothetical_cost_usd": hypothetical_cost_usd,
+        "cost_savings_usd": cost_savings_usd,
+        "cache_hit_rate": cache_hit_rate,
+        "escalation_rate": escalation_rate,
+        "avg_quality_score": avg_quality_score,
+        "requests_by_tier": requests_by_tier,
+        "requests_by_provider": requests_by_provider,
+    }
+
+
+async def _fetch_daily_rollup_inputs(target_date: date) -> _DailyRollupInputs:
+    start = datetime.combine(target_date, time.min, tzinfo=UTC)
+    end = start + timedelta(days=1)
+
+    async with managed_session() as session:
+        total_requests = (
+            await session.scalar(
+                select(func.count())
+                .select_from(Request)
+                .where(Request.created_at >= start, Request.created_at < end)
+            )
+        ) or 0
+        cache_hits = (
+            await session.scalar(
+                select(func.count())
+                .select_from(Request)
+                .where(
+                    Request.created_at >= start,
+                    Request.created_at < end,
+                    Request.cache_hit.is_(True),
+                )
+            )
+        ) or 0
+
+        response_rows_raw = (
+            await session.execute(
+                select(
+                    Response.cost_usd,
+                    Response.input_tokens,
+                    Response.output_tokens,
+                    Response.complexity_tier,
+                    Response.provider,
+                ).where(Response.created_at >= start, Response.created_at < end)
+            )
+        ).all()
+        response_rows = [
+            (row[0], row[1], row[2], row[3].value, row[4].value) for row in response_rows_raw
+        ]
+
+        verification_rows_raw = (
+            await session.execute(
+                select(Verification.status, Verification.quality_score).where(
+                    Verification.created_at >= start, Verification.created_at < end
+                )
+            )
+        ).all()
+        verification_rows = [(row[0].value, row[1]) for row in verification_rows_raw]
+
+    return _DailyRollupInputs(
+        total_requests=total_requests,
+        cache_hits=cache_hits,
+        response_rows=response_rows,
+        verification_rows=verification_rows,
+    )
+
+
+async def _upsert_cost_aggregate(target_date: date, aggregate: dict[str, Any]) -> None:
+    async with managed_session() as session:
+        stmt = pg_insert(CostAggregate).values(date=target_date, **aggregate)
+        update_cols = {key: getattr(stmt.excluded, key) for key in aggregate}
+        update_cols["updated_at"] = func.now()
+        stmt = stmt.on_conflict_do_update(index_elements=["date"], set_=update_cols)
+        await session.execute(stmt)
+
+
+async def _aggregate_daily_costs_async(target_date: date) -> dict[str, Any]:
+    routing_config = get_routing_config()
+    baseline_model = get_model(routing_config.cost_baseline.model)
+
+    inputs = await _fetch_daily_rollup_inputs(target_date)
+    aggregate = _compute_daily_aggregate(inputs, baseline_model=baseline_model)
+    await _upsert_cost_aggregate(target_date, aggregate)
+
+    return {"date": target_date.isoformat(), **aggregate}
+
+
 @celery_app.task(
     name="llm_autopilot_worker.tasks.retraining.aggregate_daily_costs",
     queue="retraining",
     max_retries=2,
     default_retry_delay=300,
 )
-def aggregate_daily_costs() -> dict[str, str]:
+def aggregate_daily_costs() -> dict[str, Any]:
     """
     Daily cost aggregation.
 
-    Summarises yesterday's request data into cost_aggregates table.
-    Grafana dashboards read from this table for trend panels.
-
-    Phase 5 implementation placeholder — out of scope for Phase 4.
+    Summarises yesterday's request data into the cost_aggregates table.
+    GET /v1/stats reads from this table; Grafana's cost_overview
+    dashboard reads live Prometheus counters instead and is unaffected
+    by this task.
     """
     log = logger.bind(task="aggregate_daily_costs")
     log.info("cost_aggregation_started")
 
+    target_date = datetime.now(UTC).date() - timedelta(days=1)
+
     try:
-        # TODO Phase 5:
-        # yesterday = date.today() - timedelta(days=1)
-        # rows = await db.fetch_requests_for_date(yesterday)
-        # aggregate = compute_daily_aggregate(rows)
-        # await db.upsert_cost_aggregate(aggregate)
-        # update_prometheus_gauges(aggregate)
-
-        result: dict[str, str] = {
-            "status": "not_implemented",
-            "message": "Phase 5 placeholder — full implementation in Phase 5",
-        }
-
+        result = asyncio.run(_aggregate_daily_costs_async(target_date))
         celery_tasks_total.labels(task_name="aggregate_daily_costs", status="success").inc()
         log.info("cost_aggregation_complete", **result)
         return result

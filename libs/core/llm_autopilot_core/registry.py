@@ -93,7 +93,7 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         max_output_tokens=8_192,
     ),
     # ── Groq (open-weight models on custom silicon) ───────────────────────────
-    "groq/llama-3.1-8b-instant": ModelConfig(
+    "meta-llama/llama-prompt-guard-2-22m": ModelConfig(
         provider=Provider.GROQ,
         model_id="llama-3.1-8b-instant",
         display_name="Llama 3.1 8B Instant (Groq)",
@@ -104,7 +104,7 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         context_window=128_000,
         max_output_tokens=8_192,
     ),
-    "groq/llama-3.1-8b-instant-low": ModelConfig(
+    "meta-llama/llama-prompt-guard-2-22m-low": ModelConfig(
         provider=Provider.GROQ,
         model_id="llama-3.1-8b-instant",
         display_name="Llama 3.1 8B Instant Low (Groq)",

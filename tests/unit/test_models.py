@@ -42,6 +42,7 @@ class TestModelRegistration:
             "CostAggregate",
             "Request",
             "Response",
+            "RoutingConfigVersion",
             "RoutingDecision",
             "Verification",
         }

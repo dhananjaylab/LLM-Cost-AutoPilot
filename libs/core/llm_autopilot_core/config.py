@@ -70,6 +70,21 @@ class Settings(BaseSettings):
     # ── Routing config ────────────────────────────────────────────────────────
     routing_config_path: str = "configs/routing.yaml"
     models_config_path: str = "configs/models.yaml"
+    # How long the API's in-process routing-config cache can go before
+    # re-checking Postgres for a newer promoted RoutingConfigVersion — see
+    # llm_autopilot_core.routing.refresh_routing_config_from_db() and the
+    # background refresh loop started in apps/api/.../main.py's lifespan.
+    # The replica that actually serves a PUT refreshes its own cache
+    # immediately, so this only bounds propagation to *other* replicas.
+    routing_config_cache_ttl_seconds: int = Field(default=30, ge=5)
+
+    # ── Admin API (Phase 5) ───────────────────────────────────────────────────
+    # Minimal shared-secret gate on mutating admin endpoints (currently just
+    # PUT /v1/admin/routing-config). Not a full auth system — no per-caller
+    # identity, no RBAC — just enough that routing/cost behavior can't be
+    # silently rewritten by an unauthenticated caller. Leave unset to
+    # effectively disable the admin write endpoint (it responds 503).
+    admin_api_key: SecretStr | None = None
 
     # ── Classifier & verification ─────────────────────────────────────────────
     # Sampling rate when classifier confidence is LOW (≤ threshold)

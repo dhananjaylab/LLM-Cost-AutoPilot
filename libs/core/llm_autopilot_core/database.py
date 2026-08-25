@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
 from llm_autopilot_core.config import get_settings
 
@@ -35,10 +36,8 @@ settings = get_settings()
 
 engine = create_async_engine(
     settings.database_url,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
-    pool_timeout=settings.database_pool_timeout,
-    pool_pre_ping=True,  # detect stale connections before checkout
+    poolclass=NullPool,
+    pool_pre_ping=False,  # Disabled for asyncpg to avoid event loop issues in tests
     echo=settings.debug,  # log SQL in dev only
     echo_pool=settings.debug,
 )

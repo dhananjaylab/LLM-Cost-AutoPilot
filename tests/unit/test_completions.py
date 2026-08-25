@@ -26,7 +26,7 @@ def _routing_config() -> RoutingConfig:
         version="1",
         tiers={
             ComplexityTier.SIMPLE: TierRoute(
-                description="", models=["groq/llama-3.1-8b-instant"], max_latency_ms=3000
+                description="", models=["meta-llama/llama-prompt-guard-2-22m"], max_latency_ms=3000
             ),
             ComplexityTier.MODERATE: TierRoute(
                 description="", models=["openai/gpt-4o-mini"], max_latency_ms=5000
@@ -111,7 +111,7 @@ class TestCacheHit:
         # Missing model_id/provider in metadata — _is_well_formed_hit()
         # must reject this rather than let a KeyError blow up the request.
         cache.acheck = AsyncMock(return_value=[{"response": "Paris", "metadata": {}}])
-        cache.astore = AsyncMock()
+        cache.astore = AsyncMock(return_value="cache:entry:xyz")
         monkeypatch.setattr("llm_autopilot_core.completions.get_semantic_cache", lambda: cache)
 
         classifier = MagicMock()
@@ -139,7 +139,7 @@ class TestCacheMiss:
     ) -> None:
         cache = MagicMock()
         cache.acheck = AsyncMock(return_value=[])
-        cache.astore = AsyncMock()
+        cache.astore = AsyncMock(return_value="cache:entry:new")
         monkeypatch.setattr("llm_autopilot_core.completions.get_semantic_cache", lambda: cache)
 
         classifier = MagicMock()
@@ -164,7 +164,7 @@ class TestCacheMiss:
     ) -> None:
         cache = MagicMock()
         cache.acheck = AsyncMock(return_value=[])
-        cache.astore = AsyncMock()
+        cache.astore = AsyncMock(return_value="cache:entry:new")
         monkeypatch.setattr("llm_autopilot_core.completions.get_semantic_cache", lambda: cache)
 
         classifier = MagicMock()
@@ -191,7 +191,7 @@ class TestCacheMiss:
     ) -> None:
         cache = MagicMock()
         cache.acheck = AsyncMock(return_value=[])
-        cache.astore = AsyncMock()
+        cache.astore = AsyncMock(return_value="cache:entry:new")
         monkeypatch.setattr("llm_autopilot_core.completions.get_semantic_cache", lambda: cache)
 
         classifier = MagicMock()
@@ -222,3 +222,33 @@ class TestCacheMiss:
 
         assert response.complexity_tier == ComplexityTier.COMPLEX
         assert response.provider == Provider.ANTHROPIC
+
+    async def test_cache_key_from_astore_is_threaded_to_verification_task(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Phase 5 — the semantic-cache key astore() returns must reach
+        enqueue_verify_response() so a later escalation can write the
+        corrected answer back to this exact entry."""
+        cache = MagicMock()
+        cache.acheck = AsyncMock(return_value=[])
+        cache.astore = AsyncMock(return_value="cache:entry:threaded-key")
+        monkeypatch.setattr("llm_autopilot_core.completions.get_semantic_cache", lambda: cache)
+
+        classifier = MagicMock()
+        # Force sampling so enqueue_verify_response is definitely called.
+        classifier.predict.return_value = ClassificationResult(
+            tier=ComplexityTier.SIMPLE, confidence=0.1, probabilities={}
+        )
+        monkeypatch.setattr("llm_autopilot_core.completions.get_classifier", lambda: classifier)
+        monkeypatch.setattr(
+            "llm_autopilot_core.completions.send_request",
+            AsyncMock(return_value=_dispatch_response("4")),
+        )
+        enqueue_mock = MagicMock()
+        monkeypatch.setattr("llm_autopilot_core.completions.enqueue_verify_response", enqueue_mock)
+
+        request = CompletionRequest(messages=[Message(role="user", content="What is 2+2?")])
+        await handle_completion_request(request)
+
+        enqueue_mock.assert_called_once()
+        assert enqueue_mock.call_args.kwargs["cache_key"] == "cache:entry:threaded-key"

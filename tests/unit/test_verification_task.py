@@ -26,7 +26,7 @@ def _routing_config() -> RoutingConfig:
         version="1",
         tiers={
             ComplexityTier.SIMPLE: TierRoute(
-                description="", models=["groq/llama-3.1-8b-instant"], max_latency_ms=3000
+                description="", models=["meta-llama/llama-prompt-guard-2-22m"], max_latency_ms=3000
             ),
             ComplexityTier.MODERATE: TierRoute(
                 description="", models=["openai/gpt-4o-mini"], max_latency_ms=5000
@@ -42,6 +42,13 @@ def _routing_config() -> RoutingConfig:
     )
 
 
+async def _refresh_routing_config() -> RoutingConfig:
+    """Async stand-in for refresh_routing_config_from_db() — Phase 5 moved
+    the verification task off the sync get_routing_config() accessor onto
+    this DB-backed refresh, so the monkeypatch target changed with it."""
+    return _routing_config()
+
+
 @asynccontextmanager
 async def _fake_managed_session():
     yield MagicMock()
@@ -50,7 +57,8 @@ async def _fake_managed_session():
 @pytest.fixture(autouse=True)
 def _patch_shared(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "llm_autopilot_worker.tasks.verification.get_routing_config", _routing_config
+        "llm_autopilot_worker.tasks.verification.refresh_routing_config_from_db",
+        _refresh_routing_config,
     )
     monkeypatch.setattr(
         "llm_autopilot_worker.tasks.verification.managed_session", _fake_managed_session
@@ -210,3 +218,126 @@ class TestEscalationTimeoutOrError:
         assert result.status == VerificationStatus.FAILED
         assert result.escalation_reason is not None
         assert result.escalated_content is None
+
+
+class TestCacheWriteback:
+    """Phase 5 — successful escalation overwrites the semantic cache entry
+    the original (wrong) response populated, in place."""
+
+    async def test_writes_back_via_aupdate_when_cache_key_present(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "llm_autopilot_worker.tasks.verification.score_response",
+            AsyncMock(
+                return_value=ScoringResult(
+                    quality_score=0.0,
+                    judge_output="pass1=B pass2=A",
+                    escalation_candidate_content="better poem",
+                    escalation_candidate_model_id="claude-sonnet-4-6",
+                    escalation_candidate_provider=Provider.ANTHROPIC,
+                    escalation_candidate_cost_usd=0.002,
+                )
+            ),
+        )
+        fake_cache = MagicMock()
+        fake_cache.aupdate = AsyncMock()
+        monkeypatch.setattr(
+            "llm_autopilot_worker.tasks.verification.get_semantic_cache",
+            lambda: fake_cache,
+        )
+
+        result = await _verify_response_async(
+            request_id=str(uuid.uuid4()),
+            prompt="Write a poem",
+            original_response="a mediocre poem",
+            model_id="llama-3.1-8b-instant",
+            provider="groq",
+            complexity_tier="simple",
+            classifier_confidence=0.5,
+            cache_key="cache:entry:abc123",
+        )
+
+        assert result.status == VerificationStatus.ESCALATED
+        fake_cache.aupdate.assert_awaited_once()
+        call = fake_cache.aupdate.await_args
+        assert call.args[0] == "cache:entry:abc123"
+        assert call.kwargs["response"] == "better poem"
+        assert call.kwargs["metadata"]["model_id"] == "claude-sonnet-4-6"
+        assert call.kwargs["metadata"]["provider"] == "anthropic"
+        assert call.kwargs["metadata"]["complexity_tier"] == "complex"
+        assert call.kwargs["metadata"]["corrected_by_escalation"] is True
+
+    async def test_no_cache_interaction_when_cache_key_absent(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "llm_autopilot_worker.tasks.verification.score_response",
+            AsyncMock(
+                return_value=ScoringResult(
+                    quality_score=0.0,
+                    judge_output="pass1=B pass2=A",
+                    escalation_candidate_content="better poem",
+                    escalation_candidate_model_id="claude-sonnet-4-6",
+                    escalation_candidate_provider=Provider.ANTHROPIC,
+                    escalation_candidate_cost_usd=0.002,
+                )
+            ),
+        )
+        get_cache_mock = MagicMock()
+        monkeypatch.setattr(
+            "llm_autopilot_worker.tasks.verification.get_semantic_cache", get_cache_mock
+        )
+
+        result = await _verify_response_async(
+            request_id=str(uuid.uuid4()),
+            prompt="Write a poem",
+            original_response="a mediocre poem",
+            model_id="llama-3.1-8b-instant",
+            provider="groq",
+            complexity_tier="simple",
+            classifier_confidence=0.5,
+            cache_key=None,
+        )
+
+        assert result.status == VerificationStatus.ESCALATED
+        get_cache_mock.assert_not_called()
+
+    async def test_cache_writeback_failure_does_not_fail_the_task(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "llm_autopilot_worker.tasks.verification.score_response",
+            AsyncMock(
+                return_value=ScoringResult(
+                    quality_score=0.0,
+                    judge_output="pass1=B pass2=A",
+                    escalation_candidate_content="better poem",
+                    escalation_candidate_model_id="claude-sonnet-4-6",
+                    escalation_candidate_provider=Provider.ANTHROPIC,
+                    escalation_candidate_cost_usd=0.002,
+                )
+            ),
+        )
+        fake_cache = MagicMock()
+        fake_cache.aupdate = AsyncMock(side_effect=RuntimeError("redis unavailable"))
+        monkeypatch.setattr(
+            "llm_autopilot_worker.tasks.verification.get_semantic_cache",
+            lambda: fake_cache,
+        )
+
+        result = await _verify_response_async(
+            request_id=str(uuid.uuid4()),
+            prompt="Write a poem",
+            original_response="a mediocre poem",
+            model_id="llama-3.1-8b-instant",
+            provider="groq",
+            complexity_tier="simple",
+            classifier_confidence=0.5,
+            cache_key="cache:entry:abc123",
+        )
+
+        # Escalation itself still succeeded and was persisted — a cache
+        # failure is best-effort and must not surface as a task failure.
+        assert result.status == VerificationStatus.ESCALATED
+        assert result.escalated_content == "better poem"

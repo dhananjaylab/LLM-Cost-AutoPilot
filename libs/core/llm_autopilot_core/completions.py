@@ -8,6 +8,12 @@ handle_completion_request() is the single place that wires together:
 Lives in libs/core (not the API router) so it's testable without FastAPI
 and reusable from a CLI/load-test script the same way baseline_test.py
 exercises providers.dispatcher directly — "shared logic over drift".
+
+Phase 5: the cache-miss path now captures the key astore() returns and
+threads it through to the verification task (see tasks_client.py /
+apps/worker/.../tasks/verification.py) so a successful escalation can
+overwrite that exact cache entry in place, instead of leaving the
+original (wrong) cached answer to keep being served until it expires.
 """
 
 from __future__ import annotations
@@ -266,7 +272,10 @@ async def handle_completion_request(request: CompletionRequest) -> CompletionRes
     _record_savings(routing_config, response, actual_cost_usd=response.cost_usd)
 
     # ── 6. Populate the cache for next time ─────────────────────────────────
-    await cache.astore(
+    # astore() returns the Redis key for the entry it just created — kept
+    # below so a later escalation (step 7) can update this exact entry in
+    # place instead of leaving the original answer cached until TTL expiry.
+    cache_key = await cache.astore(
         prompt=flattened,
         response=response.content,
         metadata={
@@ -292,6 +301,7 @@ async def handle_completion_request(request: CompletionRequest) -> CompletionRes
             input_tokens=response.input_tokens,
             output_tokens=response.output_tokens,
             cost_usd=response.cost_usd,
+            cache_key=cache_key,
         )
 
     return response

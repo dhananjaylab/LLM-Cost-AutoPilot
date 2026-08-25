@@ -13,7 +13,7 @@ routing:
     simple:
       description: "Reformatting, extraction, direct Q&A from provided context"
       models:
-        - groq/llama-3.1-8b-instant
+        - meta-llama/llama-prompt-guard-2-22m
         - groq/llama-3.3-70b-versatile
       max_latency_ms: 3000
 
@@ -21,7 +21,7 @@ routing:
       description: "Summarisation, classification, structured analysis"
       models:
         - google/gemini-3.5-flash
-        - groq/llama-3.1-8b-instant
+        - meta-llama/llama-prompt-guard-2-22m
         - openai/gpt-4o-mini
         - anthropic/claude-haiku-4-5
       max_latency_ms: 5000

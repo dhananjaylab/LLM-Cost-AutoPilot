@@ -207,13 +207,19 @@ class VerificationResult(BaseModel):
 
 
 class CostStats(BaseModel):
-    """Returned by GET /v1/stats."""
+    """
+    Returned by GET /v1/stats. Rolled up from the cost_aggregates table —
+    see apps/worker/.../tasks/retraining.aggregate_daily_costs (writer)
+    and apps/api/.../routers/stats.py (reader). Only reflects fully
+    aggregated days; today is not included (see stats.py's module
+    docstring for why).
+    """
 
     period_start: datetime
     period_end: datetime
     total_requests: int
     total_cost_usd: float
-    hypothetical_cost_usd: float  # if everything went to GPT-4o
+    hypothetical_cost_usd: float  # if everything went to the configured baseline model
     cost_savings_usd: float
     cost_savings_pct: float
     cache_hit_rate: float
@@ -221,3 +227,30 @@ class CostStats(BaseModel):
     requests_by_tier: dict[ComplexityTier, int]
     requests_by_provider: dict[Provider, int]
     avg_quality_score: float
+
+
+# ── Model registry API (Phase 5) ────────────────────────────────────────────────
+
+
+class ModelInfo(BaseModel):
+    """One entry in GET /v1/models."""
+
+    registry_key: str
+    provider: Provider
+    model_id: str
+    display_name: str
+    quality_tier: QualityTier
+    cost_per_input_token: float
+    cost_per_output_token: float
+    cost_per_1k_tokens: float
+    avg_latency_ms: float
+    context_window: int
+    max_output_tokens: int
+    enabled: bool
+    # Live, not static — reflects providers.dispatcher's circuit breaker
+    # state at request time, not just the registry's `enabled` flag.
+    circuit_breaker_available: bool
+
+
+class ModelListResponse(BaseModel):
+    models: list[ModelInfo]

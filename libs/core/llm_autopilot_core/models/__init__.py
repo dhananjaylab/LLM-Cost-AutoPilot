@@ -13,6 +13,7 @@ from llm_autopilot_core.models.costs import CostAggregate
 from llm_autopilot_core.models.requests import Request
 from llm_autopilot_core.models.responses import Response
 from llm_autopilot_core.models.routing import RoutingDecision
+from llm_autopilot_core.models.routing_config import RoutingConfigVersion
 from llm_autopilot_core.models.verification import Verification
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
     "CostAggregate",
     "Request",
     "Response",
+    "RoutingConfigVersion",
     "RoutingDecision",
     "Verification",
 ]

@@ -17,7 +17,7 @@ overrides:
   #   enabled: false
 
   # Example: update Groq pricing if they change rates
-  # groq/llama-3.1-8b-instant:
+  # meta-llama/llama-prompt-guard-2-22m:
   #   cost_per_input_token: 0.00000006
   #   cost_per_output_token: 0.00000009
 

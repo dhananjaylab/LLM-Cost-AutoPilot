@@ -60,7 +60,7 @@ routing:
     simple:
       description: "test"
       models:
-        - groq/llama-3.1-8b-instant
+        - meta-llama/llama-prompt-guard-2-22m
         - openai/model-that-does-not-exist
       max_latency_ms: 1000
     moderate:
@@ -83,7 +83,7 @@ cost_baseline:
         path.write_text(yaml_text)
 
         config = load_routing_config(str(path))
-        assert config.tiers[ComplexityTier.SIMPLE].models == ["groq/llama-3.1-8b-instant"]
+        assert config.tiers[ComplexityTier.SIMPLE].models == ["meta-llama/llama-prompt-guard-2-22m"]
 
     def test_raises_when_tier_has_no_valid_models(self, tmp_path: Path) -> None:
         yaml_text = """
