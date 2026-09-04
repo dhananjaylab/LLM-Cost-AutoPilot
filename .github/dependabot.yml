@@ -1,19 +1,44 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # ---------------------------------------------------------------------------
+  # 1. Python Dependencies (pip)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
     open-pull-requests-limit: 5
-    labels: ["dependencies", "cost"]
-    
+    labels:
+      - "dependencies"
+      - "cost"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    rebase-strategy: "auto"
+    groups:
+      python-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------------------------------------------------------------------------
+  # 2. Docker Base Images
+  # ---------------------------------------------------------------------------
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
-    labels: ["dependencies", "docker"]
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+    rebase-strategy: "auto"
