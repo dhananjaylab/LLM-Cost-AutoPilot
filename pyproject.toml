@@ -12,7 +12,7 @@ dev = [
     "mypy>=1.10.0",
     "pre-commit>=3.8.0",
     "locust>=2.46.4",
-    "alembic>=1.13.0",
+    "alembic>=1.19.1",
     "greenlet>=3.0.0",
 ]
 
