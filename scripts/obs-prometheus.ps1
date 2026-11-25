@@ -78,7 +78,8 @@ try {
         "--storage.tsdb.path=$DataPath" `
         "--storage.tsdb.retention.time=$Retention" `
         "--web.listen-address=:$Port" `
-        "--web.enable-lifecycle"
+        "--web.enable-lifecycle" `
+        "--web.enable-remote-write-receiver"
 } finally {
     $ErrorActionPreference = $OrgAction
 }
