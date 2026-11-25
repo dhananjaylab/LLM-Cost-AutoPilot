@@ -113,7 +113,9 @@ uv run pre-commit run --all-files
 
 * **Pyupgrade** (Remove redundant type casts and upgrades syntax):
   ```powershell
-  uv run pyupgrade --py311-plus libs/core/llm_autopilot_core/providers/
+  $files = Get-ChildItem -Path libs/core/llm_autopilot_core/providers -Recurse -File -Filter *.py |
+      ForEach-Object FullName
+  uv run pyupgrade --py311-plus $files
   ```
 
 > [!TIP]
