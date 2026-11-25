@@ -74,10 +74,13 @@ class OpenAIAdapter(BaseProviderAdapter):
 
         choice = completion.choices[0]
         usage = completion.usage
+        prompt_tokens_details = getattr(usage, "prompt_tokens_details", None)
+        cached_input_tokens = getattr(prompt_tokens_details, "cached_tokens", 0) or 0
         return ProviderResponse(
             content=choice.message.content or "",
             input_tokens=usage.prompt_tokens if usage else 0,
             output_tokens=usage.completion_tokens if usage else 0,
+            cached_input_tokens=cached_input_tokens,
             latency_ms=0.0,  # filled in by dispatcher
             model_id=model_config.model_id,
             provider=Provider.OPENAI,
