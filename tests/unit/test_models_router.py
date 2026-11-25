@@ -37,7 +37,7 @@ class TestListModels:
         entry = next(m for m in resp.json()["models"] if m["registry_key"] == "openai/gpt-4o")
         assert entry["provider"] == "openai"
         assert entry["model_id"] == "gpt-4o"
-        assert entry["cost_per_input_token"] == pytest.approx(0.000_005)
+        assert entry["cost_per_input_token"] == pytest.approx(2.5e-6)
         assert entry["cost_per_1k_tokens"] > 0
         assert "circuit_breaker_available" in entry
         assert isinstance(entry["circuit_breaker_available"], bool)

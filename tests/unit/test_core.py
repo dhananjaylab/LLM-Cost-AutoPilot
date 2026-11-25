@@ -257,7 +257,7 @@ class TestModelRegistry:
         model = get_model("openai/gpt-4o")
         assert model is not None
         cost = compute_cost(model, input_tokens=1000, output_tokens=500)
-        expected = (0.000_005 * 1000) + (0.000_015 * 500)
+        expected = (2.5e-6 * 1000) + (1e-5 * 500)
         assert abs(cost - expected) < 1e-10
 
     def test_groq_cheaper_than_openai_for_same_tier(self) -> None:

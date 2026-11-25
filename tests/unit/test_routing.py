@@ -16,6 +16,7 @@ from uuid import uuid4
 import pytest
 from llm_autopilot_core.providers.circuit_breaker import BreakerState
 from llm_autopilot_core.providers.dispatcher import _BREAKERS
+from llm_autopilot_core.registry import get_model
 from llm_autopilot_core.routing import (
     RoutingConfigError,
     load_routing_config,
@@ -114,7 +115,10 @@ class TestSelectModelForTier:
         decision = select_model_for_tier(ComplexityTier.SIMPLE, 0.9, config)
 
         expected_first = config.tiers[ComplexityTier.SIMPLE].models[0]
-        assert f"{decision.selected_provider.value}/{decision.selected_model_id}" == expected_first
+        expected_model = get_model(expected_first)
+        assert expected_model is not None
+        assert decision.selected_provider == expected_model.provider
+        assert decision.selected_model_id == expected_model.model_id
         assert decision.circuit_breaker_overrides == []
         assert decision.complexity_tier == ComplexityTier.SIMPLE
         assert decision.classifier_confidence == 0.9
@@ -132,14 +136,19 @@ class TestSelectModelForTier:
     def test_forces_fallback_when_every_provider_in_chain_is_open(self) -> None:
         config = load_routing_config(_REAL_ROUTING_YAML)
         moderate_models = config.tiers[ComplexityTier.MODERATE].models
-        providers_in_chain = {m.split("/")[0] for m in moderate_models}
-        for provider_name in providers_in_chain:
-            _trip(Provider(provider_name))
+        providers_in_chain = {
+            model.provider for key in moderate_models if (model := get_model(key)) is not None
+        }
+        for provider in providers_in_chain:
+            _trip(provider)
 
         decision = select_model_for_tier(ComplexityTier.MODERATE, 0.5, config)
 
         last_key = moderate_models[-1]
-        assert f"{decision.selected_provider.value}/{decision.selected_model_id}" == last_key
+        fallback_model = get_model(last_key)
+        assert fallback_model is not None
+        assert decision.selected_provider == fallback_model.provider
+        assert decision.selected_model_id == fallback_model.model_id
         assert "forced fallback" in decision.reason
         assert set(decision.circuit_breaker_overrides) == set(moderate_models)
 
