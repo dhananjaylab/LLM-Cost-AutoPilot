@@ -9,7 +9,7 @@ Design rules:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
@@ -65,6 +65,12 @@ class ModelConfig(BaseModel):
     display_name: str
     cost_per_input_token: float = Field(ge=0.0, description="USD per token")
     cost_per_output_token: float = Field(ge=0.0, description="USD per token")
+    cache_input_cost_per_token: float | None = Field(
+        default=None, ge=0.0, description="USD per cached input token (cache read)"
+    )
+    supports_prompt_caching: bool = False
+    supports_batch_api: bool = False
+    pricing_verified_at: date | None = None
     avg_latency_ms: float = Field(ge=0.0)
     quality_tier: QualityTier
     context_window: int = Field(ge=1)
@@ -242,6 +248,10 @@ class ModelInfo(BaseModel):
     quality_tier: QualityTier
     cost_per_input_token: float
     cost_per_output_token: float
+    cache_input_cost_per_token: float | None
+    supports_prompt_caching: bool
+    supports_batch_api: bool
+    pricing_verified_at: date | None
     cost_per_1k_tokens: float
     avg_latency_ms: float
     context_window: int
