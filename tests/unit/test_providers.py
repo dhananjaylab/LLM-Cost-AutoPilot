@@ -27,11 +27,16 @@ def _fake_openai_completion(
     content: str,
     prompt_tokens: int,
     completion_tokens: int,
+    cached_tokens: int = 0,
 ) -> SimpleNamespace:
     return SimpleNamespace(
         id="chatcmpl-fake",
         choices=[SimpleNamespace(message=SimpleNamespace(content=content), finish_reason="stop")],
-        usage=SimpleNamespace(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
+        usage=SimpleNamespace(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            prompt_tokens_details=SimpleNamespace(cached_tokens=cached_tokens),
+        ),
     )
 
 
@@ -82,6 +87,26 @@ class TestSendRequestOpenAI:
         expected_cost = compute_cost(model_config, 10, 5)
         assert response.cost_usd == pytest.approx(expected_cost)
         assert response.cost_usd > 0
+
+    async def test_cached_tokens_are_priced_at_cache_rate(self) -> None:
+        model_config = MODEL_REGISTRY["openai/gpt-4o-mini"]
+        fake_client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(
+                    create=AsyncMock(
+                        return_value=_fake_openai_completion("cached", 10, 5, cached_tokens=4)
+                    )
+                )
+            )
+        )
+
+        with patch.object(_ADAPTERS[Provider.OPENAI], "_get_client", return_value=fake_client):
+            response = await send_request("Hi", model_config)
+
+        assert response.cached_input_tokens == 4
+        assert response.cost_usd == pytest.approx(
+            compute_cost(model_config, 10, 5, cached_input_tokens=4)
+        )
 
     async def test_prompt_string_is_wrapped_as_single_user_message(self) -> None:
         model_config = MODEL_REGISTRY["openai/gpt-4o-mini"]

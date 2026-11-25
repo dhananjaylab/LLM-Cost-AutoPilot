@@ -125,13 +125,15 @@ class TestSelectModelForTier:
 
     def test_skips_provider_with_open_breaker(self) -> None:
         config = load_routing_config(_REAL_ROUTING_YAML)
-        # moderate chain's first entry is google/gemini-3.5-flash
-        _trip(Provider.GOOGLE)
+        first_model_key = config.tiers[ComplexityTier.MODERATE].models[0]
+        first_model = get_model(first_model_key)
+        assert first_model is not None
+        _trip(first_model.provider)
 
         decision = select_model_for_tier(ComplexityTier.MODERATE, 0.8, config)
 
-        assert decision.selected_provider != Provider.GOOGLE
-        assert "google/gemini-3.5-flash" in decision.circuit_breaker_overrides
+        assert decision.selected_provider != first_model.provider
+        assert first_model_key in decision.circuit_breaker_overrides
 
     def test_forces_fallback_when_every_provider_in_chain_is_open(self) -> None:
         config = load_routing_config(_REAL_ROUTING_YAML)

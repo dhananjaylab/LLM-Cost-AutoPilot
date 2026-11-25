@@ -45,6 +45,12 @@ class TestCacheAwareCost:
 
 
 class TestRegistryIntegrity:
+    def test_router_provider_model_pair_resolves_legacy_registry_key(self) -> None:
+        model = get_model("groq/llama-3.1-8b-instant")
+        assert model is not None
+        assert model.provider.value == "groq"
+        assert model.model_id == "llama-3.1-8b-instant"
+
     def test_cache_price_never_exceeds_input_price(self) -> None:
         for key, m in MODEL_REGISTRY.items():
             if m.cache_input_cost_per_token is not None:
