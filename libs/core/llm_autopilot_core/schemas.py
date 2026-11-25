@@ -68,6 +68,10 @@ class ModelConfig(BaseModel):
     cache_input_cost_per_token: float | None = Field(
         default=None, ge=0.0, description="USD per cached input token (cache read)"
     )
+    cache_write_cost_per_token: float | None = Field(
+        default=None, ge=0.0, description="USD per cache-write token (Anthropic 5m: 1.25x input)"
+    )
+    prompt_cache_min_tokens: int = Field(default=1024, ge=0)
     supports_prompt_caching: bool = False
     supports_batch_api: bool = False
     pricing_verified_at: date | None = None
@@ -91,6 +95,8 @@ class ModelConfig(BaseModel):
 class Message(BaseModel):
     role: str = Field(..., pattern="^(system|user|assistant)$")
     content: str = Field(..., min_length=1)
+    # Breakpoint hint: "everything up to and including this message is a stable prefix".
+    cache: bool = False
 
 
 class CompletionRequest(BaseModel):
@@ -121,6 +127,9 @@ class ProviderResponse(BaseModel):
     content: str
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
+    # input_tokens is the TOTAL prompt; these are the cached subsets of it.
+    cached_input_tokens: int = Field(default=0, ge=0)
+    cache_write_tokens: int = Field(default=0, ge=0)
     latency_ms: float = Field(ge=0.0)
     cost_usd: float = Field(default=0.0, ge=0.0)
     model_id: str

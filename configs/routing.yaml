@@ -1,12 +1,6 @@
-# configs/routing.yaml
-#
-# Maps complexity tiers → ordered model chains.
-# Router picks the first model whose provider circuit-breaker is CLOSED.
-# Update at runtime via PUT /v1/routing-config (Phase 5) — no redeploy needed.
-#
-# Key format: "<provider>/<model_id>" — must match MODEL_REGISTRY keys in registry.py
-
-version: "1"
+# configs/routing.yaml  (bootstrap only — live config is the promoted DB row; see IMPLEMENTATION.md)
+# Key format: "<provider>/<model_id>" — must match MODEL_REGISTRY keys.
+version: "2"
 
 routing:
   tiers:
@@ -19,29 +13,26 @@ routing:
 
     moderate:
       description: "Summarisation, classification, structured analysis"
+      # Reordered by verified price (Oct 2026): gpt-4o-mini < Haiku 4.5 < Gemini 3.5 Flash.
       models:
-        - google/gemini-3.5-flash
-        - meta-llama/llama-prompt-guard-2-22m
         - openai/gpt-4o-mini
         - anthropic/claude-haiku-4-5
+        - google/gemini-3.5-flash
+        - meta-llama/llama-prompt-guard-2-22m
       max_latency_ms: 5000
 
     complex:
       description: "Multi-step reasoning, creative generation, nuanced judgement"
       models:
+        - anthropic/claude-sonnet-5-5
         - anthropic/claude-sonnet-4-6
         - openai/gpt-4o
         - google/gemini-3.1-pro-preview
       max_latency_ms: 15000
 
-# Model used by the async verifier as a judge (Phase 4).
-# Deliberately not used as MODERATE's primary target — but its fallback
-# chain does end on this same model, so verification/scoring.py's
-# is_self_judge() guard still checks this at runtime.
 verification:
   judge_model: anthropic/claude-haiku-4-5
   judge_max_tokens: 512
 
-# The "hypothetical cost" baseline — every request compared against this
 cost_baseline:
   model: openai/gpt-4o

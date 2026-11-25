@@ -55,6 +55,23 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         max_output_tokens=4_096,
     ),
     # ── Anthropic ─────────────────────────────────────────────────────────────
+    "anthropic/claude-sonnet-5-5": ModelConfig(
+        provider=Provider.ANTHROPIC,
+        model_id="claude-sonnet-5-5",
+        display_name="Claude Sonnet 5.5",
+        cost_per_input_token=0.000_002,  # $2.00 / 1M
+        cost_per_output_token=0.000_010,  # $10.00 / 1M
+        cache_input_cost_per_token=0.000_000_20,  # cache read $0.20 / 1M
+        cache_write_cost_per_token=0.000_002_5,  # 5-minute cache write $2.50 / 1M
+        prompt_cache_min_tokens=512,
+        supports_prompt_caching=True,
+        supports_batch_api=True,  # Batch API = 50% off
+        pricing_verified_at=_VERIFIED,
+        avg_latency_ms=1_200,
+        quality_tier=QualityTier.HIGH,
+        context_window=1_000_000,
+        max_output_tokens=8_192,  # model max is 128K; kept low for cost control
+    ),
     "anthropic/claude-sonnet-4-6": ModelConfig(
         provider=Provider.ANTHROPIC,
         model_id="claude-sonnet-4-6",
@@ -62,6 +79,8 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         cost_per_input_token=0.000_003,
         cost_per_output_token=0.000_015,
         cache_input_cost_per_token=0.000_000_30,
+        cache_write_cost_per_token=0.000_003_75,
+        prompt_cache_min_tokens=1024,
         supports_prompt_caching=True,  # explicit cache_control, >=1024 tokens
         supports_batch_api=True,
         pricing_verified_at=_VERIFIED,
@@ -77,6 +96,8 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         cost_per_input_token=0.000_001,  # $1.00 / 1M (was $0.80 — stale)
         cost_per_output_token=0.000_005,  # $5.00 / 1M (was $4.00 — stale)
         cache_input_cost_per_token=0.000_000_10,
+        cache_write_cost_per_token=0.000_001_25,
+        prompt_cache_min_tokens=4096,
         supports_prompt_caching=True,  # needs >=4096-token prefix on Haiku 4.5
         supports_batch_api=True,
         pricing_verified_at=_VERIFIED,
@@ -128,17 +149,6 @@ MODEL_REGISTRY: dict[str, ModelConfig] = {
         context_window=128_000,
         max_output_tokens=8_192,
     ),
-    "groq/llama-3.1-8b-instant": ModelConfig(
-        provider=Provider.GROQ,
-        model_id="llama-3.1-8b-instant",
-        display_name="Llama 3.1 8B Instant (Groq)",
-        cost_per_input_token=0.000_000_05,
-        cost_per_output_token=0.000_000_08,
-        avg_latency_ms=350,
-        quality_tier=QualityTier.MEDIUM,
-        context_window=128_000,
-        max_output_tokens=8_192,
-    ),
     "meta-llama/llama-prompt-guard-2-22m-low": ModelConfig(
         provider=Provider.GROQ,
         model_id="llama-3.1-8b-instant",
@@ -174,8 +184,8 @@ def get_model(registry_key: str) -> ModelConfig | None:
     if model is not None:
         return model
 
-    # Routing can also receive a provider/model-id pair produced from a
-    # RoutingDecision. Support that form for legacy registry aliases.
+    # Routing decisions contain the provider enum value and model_id, while
+    # some registry entries use a legacy key that differs from that pair.
     provider_name, separator, model_id = registry_key.partition("/")
     if not separator:
         return None
@@ -205,24 +215,33 @@ def compute_cost(
     input_tokens: int,
     output_tokens: int,
     cached_input_tokens: int = 0,
+    cache_write_tokens: int = 0,
 ) -> float:
     """
     USD cost for one response.
 
-    `input_tokens` is the TOTAL prompt size including cache hits; adapters
-    must normalise (Anthropic reports cache reads separately — add them in).
-    `cached_input_tokens` of those are billed at the cache-read rate, falling
-    back to the full input rate when the model has no cache price.
+    `input_tokens` is the TOTAL prompt size (plain + cache reads + cache writes);
+    adapters normalise this (Anthropic reports the three buckets separately).
+    Cache reads bill at the cache-read rate; cache writes at the write rate
+    (Anthropic only; others fall back to the plain input rate).
     """
     cached = max(0, min(cached_input_tokens, input_tokens))
-    cache_rate = (
+    written = max(0, min(cache_write_tokens, input_tokens - cached))
+    plain = input_tokens - cached - written
+    read_rate = (
         model.cache_input_cost_per_token
         if model.cache_input_cost_per_token is not None
         else model.cost_per_input_token
     )
+    write_rate = (
+        model.cache_write_cost_per_token
+        if model.cache_write_cost_per_token is not None
+        else model.cost_per_input_token
+    )
     return (
-        model.cost_per_input_token * (input_tokens - cached)
-        + cache_rate * cached
+        model.cost_per_input_token * plain
+        + read_rate * cached
+        + write_rate * written
         + model.cost_per_output_token * output_tokens
     )
 

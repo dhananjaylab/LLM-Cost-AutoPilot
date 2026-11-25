@@ -114,7 +114,13 @@ async def send_request(
         raise
 
     latency_ms = (time.perf_counter() - start) * 1_000
-    cost_usd = compute_cost(model_config, raw.input_tokens, raw.output_tokens)
+    cost_usd = compute_cost(
+        model_config,
+        raw.input_tokens,
+        raw.output_tokens,
+        cached_input_tokens=raw.cached_input_tokens,
+        cache_write_tokens=raw.cache_write_tokens,
+    )
     response = raw.model_copy(update={"latency_ms": latency_ms, "cost_usd": cost_usd})
 
     cost_usd_total.labels(provider=model_config.provider.value, model_id=model_config.model_id).inc(
